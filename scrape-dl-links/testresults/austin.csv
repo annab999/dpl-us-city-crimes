@@ -1,0 +1,5 @@
+city,dataset,result_id,homepage_url,download_url
+Austin,Annual Crime Dataset 2015,spbg-9v94,https://data.austintexas.gov/Public-Safety/Annual-Crime-Dataset-2015/spbg-9v94,https://data.austintexas.gov/api/views/spbg-9v94/rows.csv?accessType=DOWNLOAD
+Austin,2016 Annual Crime Data,8iue-zpf6,https://data.austintexas.gov/Public-Safety/2016-Annual-Crime-Data/8iue-zpf6,https://data.austintexas.gov/api/views/8iue-zpf6/rows.csv?accessType=DOWNLOAD
+Austin,2017 Annual Crime,3t4q-mqs5,https://data.austintexas.gov/Public-Safety/2017-Annual-Crime/3t4q-mqs5,https://data.austintexas.gov/api/views/3t4q-mqs5/rows.csv?accessType=DOWNLOAD
+Austin,2018 Annual Crime,pgvh-cpyq,https://data.austintexas.gov/Public-Safety/2018-Annual-Crime/pgvh-cpyq,https://data.austintexas.gov/api/views/pgvh-cpyq/rows.csv?accessType=DOWNLOAD

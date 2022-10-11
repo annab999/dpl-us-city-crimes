@@ -1,0 +1,3 @@
+city,dataset,result_id,homepage_url,download_url
+Los Angeles,Crime Data from 2010 to 2019,63jg-8b9z,https://data.lacity.org/Public-Safety/Crime-Data-from-2010-to-2019/63jg-8b9z,https://data.lacity.org/api/views/63jg-8b9z/rows.csv?accessType=DOWNLOAD
+Los Angeles,Crime Data from 2020 to Present,2nrs-mtv8,https://data.lacity.org/Public-Safety/Crime-Data-from-2020-to-Present/2nrs-mtv8,https://data.lacity.org/api/views/2nrs-mtv8/rows.csv?accessType=DOWNLOAD
