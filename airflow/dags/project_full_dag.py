@@ -6,9 +6,10 @@ from airflow.utils.task_group import TaskGroup
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 from airflow.operators.generic_transfer import GenericTransfer
-from airflow.providers.apache.spark import SparkSubmitOperator
-from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateExternalTableOperator, BigQueryInsertJobOperator
-from airflow.providers.dbt.cloud import DbtCloudRunJobOperator
+
+from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
+from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateExternalTableOperator,     BigQueryInsertJobOperator
+from airflow.providers.dbt.cloud.operators.dbt import DbtCloudRunJobOperator
 
 from task_functions import parse_py, parse_bash
 
