@@ -1,21 +1,19 @@
 # First-time build can take upto 10 mins.
 
-FROM apache/airflow:2.3.4
+FROM apache/airflow
 
-ENV AIRFLOW_HOME=/opt/airflow
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+SHELL ["/bin/bash", "-o", "pipefail", "-e", "-u", "-x", "-c"]
+
+#COPY requirements.txt .
+#RUN pip install --no-cache-dir -r requirements.txt
 
 USER root
 RUN apt-get update -qq && apt-get install vim -qqq
 # git gcc g++ -qqq
 
-# Ref: https://airflow.apache.org/docs/docker-stack/recipes.html
-
-SHELL ["/bin/bash", "-o", "pipefail", "-e", "-u", "-x", "-c"]
-
-ARG CLOUD_SDK_VERSION=400.0.0
-ENV GCLOUD_HOME=/home/google-cloud-sdk
+ENV AIRFLOW_HOME=/opt/airflow
+ARG CLOUD_SDK_VERSION=405.0.1
+ENV GCLOUD_HOME=/opt/google-cloud-sdk
 
 ENV PATH="${GCLOUD_HOME}/bin/:${PATH}"
 
@@ -28,13 +26,10 @@ RUN DOWNLOAD_URL="https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/goo
        --bash-completion=false \
        --path-update=false \
        --usage-reporting=false \
+       # --additional-components alpha beta kubectl \
        --quiet \
     && rm -rf "${TMP_DIR}" \
+    && rm -rf "${GCLOUD_HOME}/.install/.backup/" \
     && gcloud --version
 
-WORKDIR $AIRFLOW_HOME
-
-# COPY scripts scripts
-# RUN chmod +x scripts
-
-USER $AIRFLOW_UID
+USER ${AIRFLOW_UID}

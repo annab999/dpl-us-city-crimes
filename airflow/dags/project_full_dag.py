@@ -1,4 +1,5 @@
 import pendulum as pdl
+import os
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
@@ -11,8 +12,8 @@ from airflow.utils.task_group import TaskGroup
 
 from task_functions import parse_py, parse_bash
 
-proj = 'denzoom'
-gs_bkt = 'gs://' + proj + '-project'
+proj = os.getenv('GCP_PROJ')
+gcs_bkt = 'gs://' + proj + '-project'
 cities = ['Chicago', 'San Francisco', 'Los Angeles', 'Austin']
 fmt = {'in': '.csv', 'out': '.parquet'}
 
@@ -46,7 +47,7 @@ with DAG(
                         op_kwargs = {
                             'name': city,
                             'ext': fmt['in'],
-                            'gs': gs_bkt
+                            'gs': gcs_bkt
                         }
                     )
                     curls = parse_link.output.map(parse_bash)
@@ -57,7 +58,7 @@ with DAG(
                     parse_link >> down_up
             else:
                 # update me
-                list_gcs_pq = [f'{gs_bkt}/prepared/{city}/']
+                list_gcs_pq = [f'{gcs_bkt}/prepared/{city}/']
                 ext_tbl = BigQueryCreateExternalTableOperator(
                     task_id="ext_tbl",
                     table_resource={
