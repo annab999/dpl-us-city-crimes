@@ -13,9 +13,9 @@ from airflow.providers.dbt.cloud.operators.dbt import DbtCloudRunJobOperator
 
 from task_functions import parse_py, parse_bash, printer
 
-# proj = os.getenv('GCP_PROJ')
+# proj = os.getenv('GCP_PROJECT_ID')
 # gcs_bkt = 'gs://' + proj + '-project'
-gcs_bkt = os.getenv('GCS_BKT')                                              # edited
+gcs_bkt = os.getenv('GCP_GCS_BUCKET')                                              # edited
 cities = ['Chicago', 'San Francisco', 'Los Angeles', 'Austin']
 fmt = {'in': '.csv', 'out': '.parquet'}
 
