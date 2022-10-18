@@ -31,7 +31,7 @@ with DAG(
     start_date = pdl.datetime(2001, 1, 1, tz="Asia/Manila"),
     # end_date = pdl.datetime(2022, 1, 1, tz="Asia/Manila"),
     default_args = def_args,
-    template_searchpath = "../include/",
+    template_searchpath = "/opt/airflow/include",
     max_active_runs = 2,
     tags = ['project', 'TEST']                                                          # edited
 ) as dag:
@@ -40,7 +40,7 @@ with DAG(
     for grp in ['files', 'bigquery']:
         with TaskGroup(group_id = grp + '_tg') as tg:
             f_cities = [city.replace(' ', '_').lower() for city in cities]
-            
+    
             if grp == 'files':
                 for city in f_cities:
                     parse_link = PythonOperator(
@@ -71,7 +71,7 @@ with DAG(
                 #             "tableId": f"<ext_table>_ext",
                 #         },
                 #         "externalDataConfiguration": {
-                #             "sourceFormat": fmt[1].strip('.').upper(),
+                #             "sourceFormat": fmt['out'].strip('.').upper(),
                 #             "sourceUris": list_gcs_pq
                 #         },
                 #         "autodetect": "True"
