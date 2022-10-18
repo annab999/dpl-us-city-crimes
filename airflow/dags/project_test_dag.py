@@ -27,8 +27,8 @@ def_args = {
 
 with DAG(
     dag_id = "project_test_dag",                                                        # edited
-    schedule = '@yearly',
-    start_date = pdl.datetime(2001, 1, 1, tz="Asia/Manila"),
+    schedule = '@once',
+    # start_date = pdl.datetime(2001, 1, 1, tz="Asia/Manila"),
     # end_date = pdl.datetime(2022, 1, 1, tz="Asia/Manila"),
     default_args = def_args,
     template_searchpath = "/opt/airflow/include",
