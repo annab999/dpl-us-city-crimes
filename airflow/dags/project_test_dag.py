@@ -2,19 +2,20 @@ import pendulum as pdl
 import os
 
 from airflow import DAG
+from airflow.utils.task_group import TaskGroup
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 from airflow.operators.generic_transfer import GenericTransfer
-from airflow.providers.apache.spark import SparkSubmitOperator
+
+from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
 from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateExternalTableOperator, BigQueryInsertJobOperator
-from airflow.providers.dbt.cloud import DbtCloudRunJobOperator
-from airflow.utils.task_group import TaskGroup
+from airflow.providers.dbt.cloud.operators.dbt import DbtCloudRunJobOperator
 
 from task_functions import parse_py, parse_bash, printer
 
-# proj = os.getenv('GCP_PROJ')
+# proj = os.getenv('GCP_PROJECT_ID')
 # gcs_bkt = 'gs://' + proj + '-project'
-gcs_bkt = os.getenv('GCS_BKT')                                              # edited
+gcs_bkt = os.getenv('GCP_GCS_BUCKET')                                              # edited
 cities = ['Chicago', 'San Francisco', 'Los Angeles', 'Austin']
 fmt = {'in': '.csv', 'out': '.parquet'}
 
@@ -30,7 +31,7 @@ with DAG(
     start_date = pdl.datetime(2001, 1, 1, tz="Asia/Manila"),
     # end_date = pdl.datetime(2022, 1, 1, tz="Asia/Manila"),
     default_args = def_args,
-    template_searchpath = "../include/",
+    template_searchpath = "/opt/airflow/include",
     max_active_runs = 2,
     tags = ['project', 'TEST']                                                          # edited
 ) as dag:
@@ -39,7 +40,7 @@ with DAG(
     for grp in ['files', 'bigquery']:
         with TaskGroup(group_id = grp + '_tg') as tg:
             f_cities = [city.replace(' ', '_').lower() for city in cities]
-            
+    
             if grp == 'files':
                 for city in f_cities:
                     parse_link = PythonOperator(
@@ -70,7 +71,7 @@ with DAG(
                 #             "tableId": f"<ext_table>_ext",
                 #         },
                 #         "externalDataConfiguration": {
-                #             "sourceFormat": fmt[1].strip('.').upper(),
+                #             "sourceFormat": fmt['out'].strip('.').upper(),
                 #             "sourceUris": list_gcs_pq
                 #         },
                 #         "autodetect": "True"
