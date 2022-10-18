@@ -7,37 +7,31 @@ def printer(msg):
 
     logging.info(msg)
 
-def parse_py(name, ext, gs):
+def parse_py(name, gs, ext):
     """
     parse download links from csv file for city
     """
-    import csv, os
+    import csv
 
-    printer(f'---------WE ARE IN {os.getcwd()}-------')
-
+    urls = []
     prefix = 'include/'
     with open(prefix + name + ext, 'r') as read_file:
         content = csv.DictReader(read_file)
-        details = [ (row['dataset'].replace(' ', '_').replace(':', ''), row['download_url']) for row in content ]
-    fnames, urls = zip(*details)
+        for row in content:
+            fname = row['dataset'].replace(' ', '_').replace(':', '')
+            urls.append({'name': name, 'gs': gs, 'ext': ext, 'fname': fname, 'url': row['download_url']})
 
-    return {'name': name, 'fnames': fnames, 'urls': urls, 'gs': gs, 'ext': ext}
+    return urls
 
-def parse_bash(url_dict):
+def parse_bash(item):
     """
     parse download-upload commands from list of links for city
     """
-    gs_path = url_dict['gs'] + '/raw/' + url_dict['name']
-    up_command = f'gcloud storage cp - {gs_path}'
-
+    gs_path = item['gs'] + '/raw/' + item['name']
+    up_command = 'gcloud storage cp - ' + gs_path
     delay = 10
-    curls = []
-    urls = url_dict['urls']
-    fnames = url_dict['fnames']
-    for i in range(len(urls)):
-        curl = f"curl {urls[i]} | {up_command}/{fnames[i]}{url_dict['ext']}"
-        curl += f' && sleep {delay}'
-        curls.append(curl)
-        printer(f'-----{curl}----------')
+    curl = f"curl {item['url']} | {up_command}/{item['fname']}{item['ext']}"
+    curl += f' && sleep {delay}'
+    printer(f'-----{curl}----------')
 
-    return curls
+    return curl
