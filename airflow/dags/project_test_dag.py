@@ -5,7 +5,6 @@ from airflow import DAG
 from airflow.utils.task_group import TaskGroup
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
-from airflow.operators.generic_transfer import GenericTransfer
 
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
 from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateExternalTableOperator, BigQueryInsertJobOperator
@@ -28,7 +27,7 @@ def_args = {
 with DAG(
     dag_id = "project_test_dag",                                                        # edited
     schedule = '@once',
-    start_date = pdl.datetime(2020, 10, 1, tz="Asia/Manila"),
+    start_date = pdl.datetime(2022, 10, 1, tz="Asia/Manila"),
     # end_date = pdl.datetime(2022, 1, 1, tz="Asia/Manila"),
     default_args = def_args,
     template_searchpath = "/opt/airflow/include",
