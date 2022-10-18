@@ -28,11 +28,11 @@ def_args = {
 with DAG(
     dag_id = "project_test_dag",                                                        # edited
     schedule = '@once',
-    # start_date = pdl.datetime(2001, 1, 1, tz="Asia/Manila"),
+    start_date = pdl.datetime(2020, 10, 1, tz="Asia/Manila"),
     # end_date = pdl.datetime(2022, 1, 1, tz="Asia/Manila"),
     default_args = def_args,
     template_searchpath = "/opt/airflow/include",
-    max_active_runs = 2,
+    max_active_runs = 1,
     tags = ['project', 'TEST']                                                          # edited
 ) as dag:
 
