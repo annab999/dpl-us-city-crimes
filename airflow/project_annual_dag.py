@@ -29,7 +29,7 @@ with DAG(
     start_date = pdl.datetime(2001, 1, 1, tz="Asia/Manila"),
     # end_date = pdl.datetime(2022, 1, 1, tz="Asia/Manila"),
     default_args = def_args,
-    template_searchpath = "/home/jbbalasbas_alum_up_edu_ph/dezoomcamp/project/airflow/include",
+    template_searchpath = "/opt/airflow/include",
     max_active_runs = 2,
     tags = ['project']
 ) as dag:
