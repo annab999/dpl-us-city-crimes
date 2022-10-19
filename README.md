@@ -1,6 +1,24 @@
 # End-to-end Pipeline Project
 Stuff is still in main [README.md](../README.md)
 
+## Version Matrix
+
+| Platform | OS | Software | Version | Notes |
+| --- | --- | :---: | :--: | ---: |
+| desktop | Windows 10 | gcloud SDK | 406.0.0 | workstation |
+| desktop | Windows 10 | Terraform | 1.3.2 | workstation |
+| VM | CentOS 7 | gcloud SDK | 406.0.0 |  |
+| VM | CentOS 7 | Docker Engine | 20.10.20 |  |
+| container | Debian 11 | Python | 3.7.14 | for Airflow |
+| container | Debian 11 | gcloud SDK | 406.0.0 | for Airflow |
+| container | Debian 11 | Postgres | 13.8 | for Airflow |
+| container | Debian 11 | Apache Airflow | 2.4.1 |  |
+| container | Debian | Anaconda |  | for Spark |
+| container | Debian | OpenJDK | 17.0.2 | for Spark |
+| container | Debian | Apache Spark | 3.3.0 |  |
+| cloud | - | BigQuery |  | managed |
+| cloud | - | dbt |  | managed |
+
 ## Development Issues
 Here are the issues I encountered in setting up the project.
 
@@ -16,7 +34,7 @@ Here are the issues I encountered in setting up the project.
   
   ~~(Also, DAG runs)~~ *-> no idea what this is for but I'll keep it here in case I remember.*
 
-  Found [this](https://github.com/apache/airflow/discussions/20693) confirming it's an unresolved bug. A suggested, unconfirmed fix mentioned (at the bottom) of the thread is to:
+  Found https://github.com/apache/airflow/discussions/20693 confirming it's an unresolved bug. A suggested, unconfirmed fix mentioned (at the bottom) of the thread is to:
   > Get the Xcom instead of XcomArg in Jinjia template or inside task callback function
   
   Again, unconfirmed and, can't really apply this to my BashOp.
@@ -40,18 +58,22 @@ Above are my own info logs. This had been causing issues with opening the csv fi
 - **Resolution**: Modify code to use relative path prefix var in `open()` method
 
 ### [Airflow] DAGs/tasks sometimes become non-performant/buggy even with fixes
-*I wasn't able to take a screenshot, but the boxes for dead tasks are flattened squares instead of the usual. And they're never executed or shaded any color at all.*
+*I wasn't able to take a screenshot, but the boxes for dead tasks are flattened squares instead of the usual. And they're never executed nor shaded any color at all.*
 - **Observations**: This happens after multiple edits to the DAG file and its tasks. It's like Airflow DB drowns in confusion and doesn't recover, for that DAG.
   
 - **Resolution**: Need to restart Airflow, or recreate as a new DAG with a new name. Do every now and then, to avoid false negatives and hours of wasted debugging T_T
 
-### [Airflow] Crosstalk(?) within the .output of an Operator among child task instances
-[airflow_mixedoutput_taskinstance_issue.png](docu/airflow_mixedoutput_taskinstance_issue.png?raw=true)
-- **Observations**: You could imagine my surprise. Seems this is due to some queueing / race condition with the different values (1 for each city) stored my `<parse_task_var>.output`, wherein I'm unable to specify the task ID.
+### [Airflow] Crosstalk(?) within the `<task_var>.output` of an Operator among child task instances
+![airflow_mixedoutput_taskinstance_issue.png](docu/airflow_mixedoutput_taskinstance_issue.png?raw=true "Airflow mixed ouput issue with task instances")
+
+- **Observations**: You could imagine my surprise. Seems this is due to some queueing / race condition with the different values (1 for each city) stored in my `<parse_task_var>.output`, wherein I'm unable to specify the task ID.
   
 - **Resolution**: Use `ti.xcom_pull(key='<key>', task_ids='<task_id>')` as much as possible to specify value. Don't forget to use **complete ID** (this is not the task var)!
 
-### [Airflow] Terrible Mistake #1: wrong input type (dict of lists) passed to map callable
+## Terrible Mistakes courtesy of Me
+Here is my stupidity in action.
+
+### [Airflow] TM #1: wrong input type (`dict` of `list`s) passed to `map()` callable
 ```
 parse_link = PythonOperator(
     task_id = f'parse_link_{city}',
@@ -66,11 +88,15 @@ def parse_py(name, gs, ext):
 curls = parse_link.output.map(parse_bash)                                       # expects a list
 ```
 
-- **Observations**: Only noticed while diff-ing with trial DAG that worked (using XCom) :( I sincerely thought that the errors were issues with XCom / dynamic task mapping / `.expand()`, because I was using a combo of this in this part. So all my searches were around these lines, and nothing I find could really directly pertain to my issue. Until I played around and diff-ed with a test using ID-ed XCom arg that worked.
-  
-- **Resolution**: Fix function to return list (of dicts)
+- **Observations**: Only noticed while diff-ing with trial DAG that worked (using XCom) :( I sincerely thought that the errors were issues with XCom / dynamic task mapping / `.expand()`, because I was using a combo of this in this part.
 
-### [Airflow] Terrible Mistake #2: wrong input type (list) defined and coded in map callable
+  So all my searches were around these lines, and nothing I find could really directly pertain to my issue. My snobbish self even thought I was affected by https://github.com/apache/airflow/issues/25061, but of course not.
+
+  Until I played around and diff-ed with a test using ID-ed XCom arg that worked.
+  
+- **Resolution**: Fix function to return `list` (of `dict`s)
+
+### [Airflow] TM #2: wrong input type (`list`) defined and coded in `map()` callable
 ```
 [2022-10-18T13:02:19.000+0000] {taskinstance.py:1851} ERROR - Task failed with exception
 Traceback (most recent call last):
@@ -99,18 +125,22 @@ My code was:
 curls = parse_link.output.map(parse_bash)                       # returns a list
 ...
 def parse_bash(url_dict):                                       # thinks it receives a dict
-  # entire content of code parses on a dict
+                                                                # entire content of code parses on a dict
 ```
 
 - **Observations**: Kept getting this error and kept thinking it was again (as the earlier related issue) an Airflow bug with the combo of features I was working on. Only realized the *real* after issue after having fixed the earlier issue with a set of more self-aware eyes.
 
-  
-- **Resolution**: Fix function to use arg of each individual item of the mapped list (alternatively, could use combo of `.expand_kwargs()` and a separate function)
+- **Resolution**: Fix function to use arg of each individual item of the mapped `list` (alternatively, could use combo of `.expand_kwargs()` and a separate function)
 
 ## TODOs:
 - dag running per year but parsing is lahat
-- remove DEBUG logging, example dags
-- try: ti.xcom in map func
+- try: ti.xcom in `map()` func
 - `curls = parse_link.output.map(parse_bash)`
 - `curls.value[item]`
 - set up smooth error handling in webscraping script if no more remaining results to scrape from page
+
+### Before running prod
+- update airflow .env bucket
+- remove DEBUG logging, example dags
+- upgrade version
+  - airflow gcloud 406

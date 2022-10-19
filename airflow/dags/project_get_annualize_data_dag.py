@@ -22,19 +22,19 @@ def_args = {
 }
 
 with DAG(
-    dag_id = "project_test_dag",
+    dag_id = "project_get_annualize_data_dag",
     schedule = '@once',
     start_date = pdl.datetime(2022, 10, 1, tz="Asia/Manila"),
     default_args = def_args,
     template_searchpath = "/opt/airflow/include",
-    max_active_runs = 2,
-    tags = ['project', 'TEST']
+    max_active_runs = 1,
+    tags = ['project']
 ) as dag:
 
     f_cities = [city.replace(' ', '_').lower() for city in cities]
-    
+
     with TaskGroup(group_id = 'files_tg') as tg:
-            
+        
         for city in f_cities:
             parse_link = PythonOperator(
                 task_id = f'parse_link_{city}',
@@ -46,12 +46,12 @@ with DAG(
                 }
             )
             curls = parse_link.output.map(parse_bash)
-            down_up = BashOperator \
-                .partial(task_id = f'down_up_{city}') \
+            curl_up = BashOperator \
+                .partial(task_id = f'curl_up_{city}') \
                 .expand(bash_command = curls)
 
-            parse_link >> down_up
-            
+            parse_link >> curl_up
+
     printer('\n--------after tg--------\n')
 
     for city in f_cities:
