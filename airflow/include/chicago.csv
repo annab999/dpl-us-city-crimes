@@ -1,13 +1,23 @@
-city,dataset,result_id,homepage_url,download_url
-Chicago,Crimes - 2001,8v97-unyc,https://data.cityofchicago.org/Public-Safety/Crimes-2001/8v97-unyc,https://data.cityofchicago.org/api/views/8v97-unyc/rows.csv?accessType=DOWNLOAD
-Chicago,Crimes - 2002,g9qy-h66j,https://data.cityofchicago.org/Public-Safety/Crimes-2002/g9qy-h66j,https://data.cityofchicago.org/api/views/g9qy-h66j/rows.csv?accessType=DOWNLOAD
-Chicago,Crimes - 2003,zjqd-uvky,https://data.cityofchicago.org/Public-Safety/Crimes-2003/zjqd-uvky,https://data.cityofchicago.org/api/views/zjqd-uvky/rows.csv?accessType=DOWNLOAD
-Chicago,Crimes - 2004,vaxn-3ims,https://data.cityofchicago.org/Public-Safety/Crimes-2004/vaxn-3ims,https://data.cityofchicago.org/api/views/vaxn-3ims/rows.csv?accessType=DOWNLOAD
-Chicago,Crimes - 2005,4guy-sfss,https://data.cityofchicago.org/Public-Safety/Crimes-2005/4guy-sfss,https://data.cityofchicago.org/api/views/4guy-sfss/rows.csv?accessType=DOWNLOAD
-Chicago,Crimes - 2006,mh59-yhwm,https://data.cityofchicago.org/Public-Safety/Crimes-2006/mh59-yhwm,https://data.cityofchicago.org/api/views/mh59-yhwm/rows.csv?accessType=DOWNLOAD
-Chicago,Crimes - 2007,7wwb-3vgm,https://data.cityofchicago.org/Public-Safety/Crimes-2007/7wwb-3vgm,https://data.cityofchicago.org/api/views/7wwb-3vgm/rows.csv?accessType=DOWNLOAD
-Chicago,Crimes - 2008,xa2r-bcfc,https://data.cityofchicago.org/Public-Safety/Crimes-2008/xa2r-bcfc,https://data.cityofchicago.org/api/views/xa2r-bcfc/rows.csv?accessType=DOWNLOAD
-Chicago,Crimes - 2009,qqw2-hwkh,https://data.cityofchicago.org/Public-Safety/Crimes-2009/qqw2-hwkh,https://data.cityofchicago.org/api/views/qqw2-hwkh/rows.csv?accessType=DOWNLOAD
-Chicago,Crimes - 2010,q4de-h6yq,https://data.cityofchicago.org/Public-Safety/Crimes-2010/q4de-h6yq,https://data.cityofchicago.org/api/views/q4de-h6yq/rows.csv?accessType=DOWNLOAD
-Chicago,Crimes - 2011,qnrb-dui6,https://data.cityofchicago.org/Public-Safety/Crimes-2011/qnrb-dui6,https://data.cityofchicago.org/api/views/qnrb-dui6/rows.csv?accessType=DOWNLOAD
-Chicago,Crimes - 2012,hx8q-mf9v,https://data.cityofchicago.org/Public-Safety/Crimes-2012/hx8q-mf9v,https://data.cityofchicago.org/api/views/hx8q-mf9v/rows.csv?accessType=DOWNLOAD
+city,dataset,result_id,homepage_url,download_url
+Chicago,Crimes - 2001,8v97-unyc,https://data.cityofchicago.org/Public-Safety/Crimes-2001/8v97-unyc,https://data.cityofchicago.org/api/views/8v97-unyc/rows.csv?accessType=DOWNLOAD
+Chicago,Crimes - 2002,g9qy-h66j,https://data.cityofchicago.org/Public-Safety/Crimes-2002/g9qy-h66j,https://data.cityofchicago.org/api/views/g9qy-h66j/rows.csv?accessType=DOWNLOAD
+Chicago,Crimes - 2003,zjqd-uvky,https://data.cityofchicago.org/Public-Safety/Crimes-2003/zjqd-uvky,https://data.cityofchicago.org/api/views/zjqd-uvky/rows.csv?accessType=DOWNLOAD
+Chicago,Crimes - 2004,vaxn-3ims,https://data.cityofchicago.org/Public-Safety/Crimes-2004/vaxn-3ims,https://data.cityofchicago.org/api/views/vaxn-3ims/rows.csv?accessType=DOWNLOAD
+Chicago,Crimes - 2005,4guy-sfss,https://data.cityofchicago.org/Public-Safety/Crimes-2005/4guy-sfss,https://data.cityofchicago.org/api/views/4guy-sfss/rows.csv?accessType=DOWNLOAD
+Chicago,Crimes - 2006,mh59-yhwm,https://data.cityofchicago.org/Public-Safety/Crimes-2006/mh59-yhwm,https://data.cityofchicago.org/api/views/mh59-yhwm/rows.csv?accessType=DOWNLOAD
+Chicago,Crimes - 2007,7wwb-3vgm,https://data.cityofchicago.org/Public-Safety/Crimes-2007/7wwb-3vgm,https://data.cityofchicago.org/api/views/7wwb-3vgm/rows.csv?accessType=DOWNLOAD
+Chicago,Crimes - 2008,xa2r-bcfc,https://data.cityofchicago.org/Public-Safety/Crimes-2008/xa2r-bcfc,https://data.cityofchicago.org/api/views/xa2r-bcfc/rows.csv?accessType=DOWNLOAD
+Chicago,Crimes - 2009,qqw2-hwkh,https://data.cityofchicago.org/Public-Safety/Crimes-2009/qqw2-hwkh,https://data.cityofchicago.org/api/views/qqw2-hwkh/rows.csv?accessType=DOWNLOAD
+Chicago,Crimes - 2010,q4de-h6yq,https://data.cityofchicago.org/Public-Safety/Crimes-2010/q4de-h6yq,https://data.cityofchicago.org/api/views/q4de-h6yq/rows.csv?accessType=DOWNLOAD
+Chicago,Crimes - 2011,qnrb-dui6,https://data.cityofchicago.org/Public-Safety/Crimes-2011/qnrb-dui6,https://data.cityofchicago.org/api/views/qnrb-dui6/rows.csv?accessType=DOWNLOAD
+Chicago,Crimes - 2012,hx8q-mf9v,https://data.cityofchicago.org/Public-Safety/Crimes-2012/hx8q-mf9v,https://data.cityofchicago.org/api/views/hx8q-mf9v/rows.csv?accessType=DOWNLOAD
+Chicago,Crimes - 2013,a95h-gwzm,https://data.cityofchicago.org/Public-Safety/Crimes-2013/a95h-gwzm,https://data.cityofchicago.org/api/views/a95h-gwzm/rows.csv?accessType=DOWNLOAD
+Chicago,Crimes - 2014,qnmj-8ku6,https://data.cityofchicago.org/Public-Safety/Crimes-2014/qnmj-8ku6,https://data.cityofchicago.org/api/views/qnmj-8ku6/rows.csv?accessType=DOWNLOAD
+Chicago,Crimes - 2015,vwwp-7yr9,https://data.cityofchicago.org/Public-Safety/Crimes-2015/vwwp-7yr9,https://data.cityofchicago.org/api/views/vwwp-7yr9/rows.csv?accessType=DOWNLOAD
+Chicago,Crimes - 2016,kf95-mnd6,https://data.cityofchicago.org/Public-Safety/Crimes-2016/kf95-mnd6,https://data.cityofchicago.org/api/views/kf95-mnd6/rows.csv?accessType=DOWNLOAD
+Chicago,Crimes - 2017,d62x-nvdr,https://data.cityofchicago.org/Public-Safety/Crimes-2017/d62x-nvdr,https://data.cityofchicago.org/api/views/d62x-nvdr/rows.csv?accessType=DOWNLOAD
+Chicago,Crimes - 2018,3i3m-jwuy,https://data.cityofchicago.org/Public-Safety/Crimes-2018/3i3m-jwuy,https://data.cityofchicago.org/api/views/3i3m-jwuy/rows.csv?accessType=DOWNLOAD
+Chicago,Crimes - 2019,w98m-zvie,https://data.cityofchicago.org/Public-Safety/Crimes-2019/w98m-zvie,https://data.cityofchicago.org/api/views/w98m-zvie/rows.csv?accessType=DOWNLOAD
+Chicago,Crimes - 2020,qzdf-xmn8,https://data.cityofchicago.org/Public-Safety/Crimes-2020/qzdf-xmn8,https://data.cityofchicago.org/api/views/qzdf-xmn8/rows.csv?accessType=DOWNLOAD
+Chicago,Crimes - 2021,dwme-t96c,https://data.cityofchicago.org/Public-Safety/Crimes-2021/dwme-t96c,https://data.cityofchicago.org/api/views/dwme-t96c/rows.csv?accessType=DOWNLOAD
+Chicago,Crimes - 2022,9hwr-2zxp,https://data.cityofchicago.org/Public-Safety/Crimes-2022/9hwr-2zxp,https://data.cityofchicago.org/api/views/9hwr-2zxp/rows.csv?accessType=DOWNLOAD

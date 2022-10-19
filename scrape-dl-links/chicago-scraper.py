@@ -16,7 +16,7 @@ listURL = "browse?limitTo=filters&q=Crimes+-+2001&sortBy=alpha"
 wait_sta = 12 # seconds
 wait_dyn = 5 # seconds
 city = 'chicago' # output filename
-maxcount = 12 # how many items to scrape
+maxcount = 22 # how many items to scrape
 ####### END EDIT
 
 fname = city.replace(' ', '_')
