@@ -10,7 +10,7 @@ from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOpe
 from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateExternalTableOperator, BigQueryInsertJobOperator
 from airflow.providers.dbt.cloud.operators.dbt import DbtCloudRunJobOperator
 
-from task_functions import parse_py, parse_bash, printer
+from testy_func import parse_py, parse_bash, printer
 
 # proj = os.getenv('GCP_PROJECT_ID')
 # gcs_bkt = 'gs://' + proj + '-project'
@@ -25,7 +25,7 @@ def_args = {
 }
 
 with DAG(
-    dag_id = "project_test_dag",                                                        # edited
+    dag_id = "testy_dag",                                                        # edited
     schedule = '@once',
     start_date = pdl.datetime(2022, 10, 1, tz="Asia/Manila"),
     # end_date = pdl.datetime(2022, 1, 1, tz="Asia/Manila"),
@@ -51,12 +51,19 @@ with DAG(
                             'gs': gcs_bkt
                         }
                     )
-                    curls = parse_link.output.map(parse_bash)
+                    testpy = PythonOperator(
+                        task_id = f'testpy_{city}',
+                        python_callable = parse_bash,
+                        op_kwargs = {
+                            'name': city,
+                        }
+                    )
                     down_up = BashOperator \
                         .partial(task_id = f'down_up_{city}') \
-                        .expand(bash_command = curls)
+                        .expand(bash_command = testpy.output)
 
-                    parse_link >> down_up
+                    parse_link >> testpy >> down_up
+
             else:
                 printer('\n--------went through else--------\n')                        # edited
                 # # update me

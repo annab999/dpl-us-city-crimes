@@ -7,27 +7,31 @@ def printer(msg):
 
     logging.info(msg)
 
-def parse_py(name, ext, gs):
+def parse_py(name, gs, ext):
     """
     parse download links from csv file for city
     """
-    import csv, os
+    import csv
 
-    printer(f'---------WE ARE IN {os.getcwd()}-------')
-    printer(f'---------stuff in /opt/airflow/ are: {os.listdir("/opt/airflow")}-------')
-    printer(f'---------stuff in /opt/airflow/include/ are: {os.listdir("/opt/airflow/include")}-------')
-
+    urls = []
     prefix = 'include/'
     with open(prefix + name + ext, 'r') as read_file:
         content = csv.DictReader(read_file)
-        urls = [row['download_url'] for row in content] 
+        for row in content:
+            fname = row['dataset'].replace(' ', '_').replace(':', '')
+            urls.append({'name': name, 'gs': gs, 'ext': ext, 'fname': fname, 'url': row['download_url']})
 
-    return {'name': name, 'urls': urls, 'gs': gs}
+    return urls
 
-def parse_bash(urls_dict):
+def parse_bash(item):
     """
     parse download-upload commands from list of links for city
     """
-    gs_path = urls_dict['gs'] + '/raw/' + urls_dict["name"] + '/'
-    up_command = f'gcloud storage cp - {gs_path}'
-    return [ f'curl {url} | {up_command} && sleep 4' for url in urls_dict['urls'] ]
+    gs_path = item['gs'] + '/raw/' + item['name']
+    up_command = 'gcloud storage cp - ' + gs_path
+    delay = 10
+    curl = f"curl {item['url']} | {up_command}/{item['fname']}{item['ext']}"
+    curl += f' && sleep {delay}'
+    printer(f'-----{curl}----------')
+
+    return curl
