@@ -2,6 +2,7 @@
 Stuff is still in main [README.md](../README.md)
 
 ## Version Matrix
+The following are the software (and corresponding versions) used for this project:
 
 | Platform | OS | Software | Version | Notes |
 | --- | --- | :---: | :--: | ---: |
