@@ -4,6 +4,10 @@
 ##### common settings across project
 x-project-common:
   &project-common
+  build:
+    args:
+      &project-common-arg
+      INSTALL_DIR: ${INSTALL_LOC}
   environment:
     &project-common-env
     GCP_PROJECT_ID: ${GCP_PROJ}
@@ -31,7 +35,11 @@ x-airflow-common:
   # Comment the image line, place your Dockerfile in the directory where you placed the docker-compose.yaml
   # and uncomment the "build" line below, Then run `docker-compose build` to build the images.
   # image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:2.4.1}
-  build: ./airflow
+  build:
+    context: ./airflow
+    args:
+      <<: *project-common-arg
+      AIRFLOW_USER: ${AIRFLOW_UID}
   environment:
     &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
@@ -92,7 +100,7 @@ services:
     <<: [ *airflow-common, *project-common ]
     command: webserver
     ports:
-      - 8080:8080
+      - "8080:8080"
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
       interval: 10s
@@ -105,7 +113,7 @@ services:
         condition: service_completed_successfully
 
   airflow-scheduler:
-    <<: [*airflow-common, *project-common ]
+    <<: [ *airflow-common, *project-common ]
     command: scheduler
     healthcheck:
       test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']
@@ -253,7 +261,7 @@ services:
     # profiles:
     #   - flower
     ports:
-      - 5555:5555
+      - "5555:5555"
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:5555/"]
       interval: 10s
@@ -267,11 +275,15 @@ services:
         
   ################################## SPARK ##################################
   spark:
-    build: ./spark
+    build:
+      context: ./spark
+      args:
+        <<: *project-common-arg
+        FILES_DIR: ${SPARK_FILES_LOC}
     ports:
-      - 8888:8888
-      - 4040:4040
-      - 8080:8080
+      - "8888:8888"
+      - "4040:4040"
+      - "8081:8080"
     environment:
       <<: *project-common-env
       GOOGLE_APPLICATION_CREDENTIALS: ${SPARK_CREDS}

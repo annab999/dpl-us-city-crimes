@@ -11,9 +11,11 @@ USER root
 RUN apt-get update -qq && apt-get install vim -qqq
 # git gcc g++ -qqq
 
-ENV AIRFLOW_HOME=${INSTALL_LOC}/airflow
+ARG AIRFLOW_USER
+ARG INSTALL_DIR
 ARG CLOUD_SDK_VERSION=406.0.0
-ENV GCLOUD_HOME=${INSTALL_LOC}/google-cloud-sdk
+ENV AIRFLOW_HOME=${INSTALL_DIR}/airflow
+ENV GCLOUD_HOME=${INSTALL_DIR}/google-cloud-sdk
 
 ENV PATH="${GCLOUD_HOME}/bin/:${PATH}"
 
@@ -32,4 +34,4 @@ RUN DOWNLOAD_URL="https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/goo
     && rm -rf "${GCLOUD_HOME}/.install/.backup/" \
     && gcloud --version
 
-USER ${AIRFLOW_UID}
+USER $AIRFLOW_USER
