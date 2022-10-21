@@ -34,4 +34,4 @@ RUN DOWNLOAD_URL="https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/goo
     && rm -rf "${GCLOUD_HOME}/.install/.backup/" \
     && gcloud --version
 
-USER $AIRFLOW_USER
+USER ${AIRFLOW_USER}

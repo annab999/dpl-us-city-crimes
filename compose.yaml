@@ -3,7 +3,6 @@
 
 ##### common settings across project
 x-project-common:
-  &project-common
   build:
     args:
       &project-common-arg
@@ -36,16 +35,17 @@ x-airflow-common:
   # and uncomment the "build" line below, Then run `docker-compose build` to build the images.
   # image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:2.4.1}
   build:
-    context: ./airflow
+    context: ${AIRFLOW_HOST}
     args:
       <<: *project-common-arg
       AIRFLOW_USER: ${AIRFLOW_UID}
   environment:
     &airflow-common-env
+    <<: *project-common-env
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
     # For backward compatibility, with Airflow <2.3
-    # AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
     AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
     AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
     AIRFLOW__CORE__FERNET_KEY: ''
@@ -56,11 +56,11 @@ x-airflow-common:
     GOOGLE_APPLICATION_CREDENTIALS: /.google/credentials/${AIRFLOW_CREDS}
     AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT: 'google-cloud-platform://?extra__google_cloud_platform__key_path=/.google/credentials/${AIRFLOW_CREDS}'
   volumes:
-    - ./airflow/dags:${INSTALL_LOC}/airflow/dags
-    - ./airflow/logs:${INSTALL_LOC}/airflow/logs
-    - ./airflow/plugins:${INSTALL_LOC}/airflow/plugins
-    - ./airflow/include:${INSTALL_LOC}/airflow/include
-    - ${CREDS_LOC}/airflow:/.google/credentials:ro
+    - ${AIRFLOW_HOST}/dags:${INSTALL_LOC}/airflow/dags
+    - ${AIRFLOW_HOST}/logs:${INSTALL_LOC}/airflow/logs
+    - ${AIRFLOW_HOST}/plugins:${INSTALL_LOC}/airflow/plugins
+    - ${AIRFLOW_HOST}/include:${INSTALL_LOC}/airflow/include
+    - ${CREDS_HOST}/airflow:/.google/credentials:ro
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on
@@ -97,7 +97,7 @@ services:
     restart: always
 
   airflow-webserver:
-    <<: [ *airflow-common, *project-common ]
+    <<: *airflow-common
     command: webserver
     ports:
       - "8080:8080"
@@ -113,7 +113,7 @@ services:
         condition: service_completed_successfully
 
   airflow-scheduler:
-    <<: [ *airflow-common, *project-common ]
+    <<: *airflow-common
     command: scheduler
     healthcheck:
       test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']
@@ -148,7 +148,7 @@ services:
         condition: service_completed_successfully
 
   airflow-triggerer:
-    <<: [ *airflow-common, *project-common ]
+    <<: *airflow-common
     command: triggerer
     healthcheck:
       test: ["CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"']
@@ -237,7 +237,7 @@ services:
       _PIP_ADDITIONAL_REQUIREMENTS: ''
     user: "0:0"
     volumes:
-      - .:/sources
+      - ${AIRFLOW_HOST}:/sources
 
   airflow-cli:
     <<: *airflow-common
@@ -256,7 +256,7 @@ services:
   # or by explicitly targeted on the command line e.g. docker-compose up flower.
   # See: https://docs.docker.com/compose/profiles/
   flower:
-    <<: [ *airflow-common, *project-common ]
+    <<: *airflow-common
     command: celery flower
     # profiles:
     #   - flower
@@ -276,7 +276,7 @@ services:
   ################################## SPARK ##################################
   spark:
     build:
-      context: ./spark
+      context: ${SPARK_HOST}
       args:
         <<: *project-common-arg
         FILES_DIR: ${SPARK_FILES_LOC}
@@ -288,8 +288,8 @@ services:
       <<: *project-common-env
       GOOGLE_APPLICATION_CREDENTIALS: ${SPARK_CREDS}
     volumes:
-      - ./spark:${SPARK_FILES_LOC}
-      - ${CREDS_LOC}/spark:/.google/credentials:ro
+      - ${SPARK_HOST}:${SPARK_FILES_LOC}
+      - ${CREDS_HOST}/spark:/.google/credentials:ro
 
 volumes:
   ################################## AIRFLOW ##################################
