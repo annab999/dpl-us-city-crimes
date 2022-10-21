@@ -3,6 +3,8 @@ FROM continuumio/anaconda3
 # loudly fail on error
 SHELL ["/bin/bash", "-o", "pipefail", "-e", "-u", "-x", "-c"]
 
+USER root
+
 # arg and env vars
 ARG INSTALL_DIR
 ARG FILES_DIR
@@ -15,13 +17,12 @@ ENV SPARK_HOME=${INSTALL_DIR}/${SPARK_VERSION}
 ENV FILES_HOME=${FILES_DIR}
 ENV JAR_FILE_LOC=${JAR_LOC}/${JAR_FILE}
 
-# update system, activate anaconda
-# RUN useradd --create-home --shell /bin/bash --groups sudo anna
-RUN apt-get update --quiet --yes \
-    && apt-get --quiet --yes install sudo man vim \
-    && apt-get --quiet --yes clean \
-    && mkdir -p "${JAR_LOC}" "${FILES_HOME}" \
-    && source /opt/conda/bin/activate
+# create user, update system
+RUN useradd --shell /bin/bash --create-home --gid 0 spark-user \
+    && mkdir -p "${JAR_LOC}" \
+    && apt-get update --quiet --yes \
+    && apt-get --quiet --yes install vim \
+    && apt-get --quiet --yes clean
 
 WORKDIR ${INSTALL_DIR}
 
@@ -39,7 +40,10 @@ RUN JDK_URL=https://download.java.net/java/GA/jdk17.0.2/dfd4a8d0985749f896bed50d
 ENV PATH="${SPARK_HOME}/bin:${JAVA_HOME}/bin:${PATH}"
 ENV PYTHONPATH="${SPARK_HOME}/python/lib/py4j-0.10.9.5-src.zip:${SPARK_HOME}/python:$PYTHONPATH"
 
-# switch back to proj dir
+# set up work area
+USER spark-user
+RUN mkdir -p "${FILES_HOME}" \
+    && source /opt/conda/bin/activate
 WORKDIR "${FILES_HOME}"
 #RUN pip install -r requirements.txt
 
