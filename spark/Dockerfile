@@ -42,9 +42,10 @@ ENV PYTHONPATH="${SPARK_HOME}/python/lib/py4j-0.10.9.5-src.zip:${SPARK_HOME}/pyt
 
 # set up work area
 USER spark-user
+COPY requirements.txt .
 RUN mkdir -p "${FILES_HOME}" \
-    && source /opt/conda/bin/activate
+    && source /opt/conda/bin/activate \
+    && pip install --no-cache-dir -r requirements.txt
 WORKDIR "${FILES_HOME}"
-#RUN pip install -r requirements.txt
 
 CMD [ "jupyter", "notebook", "--ip=0.0.0.0", "--no-browser" ]
