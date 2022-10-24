@@ -29,9 +29,7 @@ def parse_bash(item):
     """
     gs_path = item['gs'] + '/raw/' + item['name']
     up_command = 'gcloud storage cp - ' + gs_path
-    delay = 10
     curl = f"curl {item['url']} | {up_command}/{item['fname']}{item['ext']}"
-    curl += f' && sleep {delay}'
     printer(f'-----{curl}----------')
 
     return curl

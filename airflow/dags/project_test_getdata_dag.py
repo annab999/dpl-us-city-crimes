@@ -22,7 +22,7 @@ def_args = {
 }
 
 with DAG(
-    dag_id = "project_test_dag",
+    dag_id = "project_test_getdata_dag",
     schedule = '@once',
     start_date = pdl.datetime(2022, 10, 1, tz="Asia/Manila"),
     default_args = def_args,
@@ -47,7 +47,9 @@ with DAG(
             )
             curls = parse_link.output.map(parse_bash)
             down_up = BashOperator \
-                .partial(task_id = f'down_up_{city}') \
+                .partial(
+                    task_id = f'down_up_{city}',
+                    max_active_tis_per_dag = 2) \
                 .expand(bash_command = curls)
 
             parse_link >> down_up
@@ -70,5 +72,6 @@ with DAG(
     printer('\n--------after spark--------\n')
 
     # # task dependencies
-    tg >> prepare_data
+#    tg >> prepare_data
+    tg
     printer('\n--------dag done--------\n')
