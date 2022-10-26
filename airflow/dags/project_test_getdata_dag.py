@@ -49,7 +49,7 @@ with DAG(
             down_up = BashOperator \
                 .partial(
                     task_id = f'down_up_{city}',
-                    max_active_tis_per_dag = 2) \
+                    max_active_tis_per_dag = 3) \
                 .expand(bash_command = curls)
 
             parse_link >> down_up
