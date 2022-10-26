@@ -13,7 +13,7 @@ The following are the software (and corresponding versions) used for this projec
 | container | Debian 11 | Python | 3.7.14 | for Airflow |
 | container | Debian 11 | gcloud SDK | 406.0.0 | for Airflow |
 | container | Debian 11 | Postgres | 13.8 | for Airflow |
-| container | Debian 11 | Apache Airflow | 2.4.1 |  |
+| container | Debian 11 | Apache Airflow | 2.4.2 |  |
 | container | Debian | Anaconda | 4.12 | for Spark |
 | container | Debian | Python | 3.9.12 | for Spark |
 | container | Debian | OpenJDK | 17.0.2 | for Spark |
@@ -230,6 +230,79 @@ Filesystem      Size  Used Avail Use% Mounted on
   
 - **Resolution**: Restart docker service after many failed/test builds
 
+### [Airflow] Incomplete stream transfers by BashOp marked by Airflow as successes
+So the whole time, I've been using the files from the first successful DAG run and turns out the files were incompletely transferred.
+
+Sample of a false positive run:
+```
+[2022-10-24, 19:58:04 PST] {subprocess.py:93} INFO -   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+[2022-10-24, 19:58:04 PST] {subprocess.py:93} INFO -                                  Dload  Upload   Total   Spent    Left  Speed
+[2022-10-24, 19:59:29 PST] {subprocess.py:93} INFO - 
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0WARNING: Using sequential instead of parallel task execution to transfer from stdin.
+[2022-10-24, 19:59:32 PST] {subprocess.py:93} INFO - Copying file://- to gs://test_data_lake_denzoom/raw/austin/2016_Annual_Crime_Data.csv
+[2022-10-24, 19:59:33 PST] {subprocess.py:93} INFO - 
+[2022-10-24, 19:59:37 PST] {subprocess.py:93} INFO - 
+100 81080    0 81080    0     0    875      0 --:--:--  0:01:32 --:--:--   875
+100  463k    0  463k    0     0   5105      0 --:--:--  0:01:32 --:--:--  5105
+100 1519k    0 1519k    0     0  16712      0 --:--:--  0:01:33 --:--:-- 16712
+[2022-10-24, 19:59:37 PST] {subprocess.py:93} INFO - curl: (18) transfer closed with outstanding read data remaining
+[2022-10-24, 19:59:38 PST] {subprocess.py:93} INFO - .....................
+[2022-10-24, 20:00:00 PST] {subprocess.py:97} INFO - Command exited with return code 0
+[2022-10-24, 20:00:02 PST] {taskinstance.py:1406} INFO - Marking task as SUCCESS.
+```
+Sample of an actual successful run:
+```
+...
+100 59.0M    0 59.0M    0     0   132k      0 --:--:--  0:07:36 --:--:-- 68454
+100 59.3M    0 59.3M    0     0   132k      0 --:--:--  0:07:37 --:--:--  116k
+[2022-10-24, 20:08:20 PST] {subprocess.py:93} INFO - ......................................................................
+[2022-10-24, 20:08:20 PST] {subprocess.py:93} INFO - 
+[2022-10-24, 20:08:20 PST] {subprocess.py:93} INFO - Average throughput: 76.4MiB/s
+[2022-10-24, 20:08:31 PST] {subprocess.py:97} INFO - Command exited with return code 0
+[2022-10-24, 20:08:31 PST] {taskinstance.py:1406} INFO - Marking task as SUCCESS.s
+```
+
+- **Observations**: Tried the following, to no avail (I use 300s a lot since it's the default `retry_delay` for Operators):
+  - curl timeouts
+    - increase `--keepalive-time` (default 60s) to 300
+      - decrease to 2 as suggested on web
+    - set `--connect-timeout` (no default value) to 300
+    - set `--max-time` (no default value) to 300
+  - increase `sleep` delay - from initial 10s to up to 45s
+  - task param
+    - set `max_active_tis_per_dag` (no default value) to 8, 4
+  - check tcp
+    - `$ cat /proc/sys/net/ipv4/tcp_keepalive_time` gave 7200s, which doesn't seem to apply to this case
+  - check `gcloud storage cp` ref - no timeout params
+  
+  Then, tried running 1 city only (Austin, which had 4 task instances) and worked. So tried the following:
+  - remove my `sleep` delay: SEEMS THIS INTRODUCED MORE PROBLEMS THAN SOLVED ANY
+    - set even lower `max_active_tis_per_dag`
+      - 2: worked 
+      - 4: a few false positives, **without `curl (18)` errors**!
+      - *(for science)* none: more false positives with  `curl(18)` errors
+      - 3: worked
+
+- **Resolution**: Remove my initial sleep delay! Set `max_active_tis_per_dag` to < 4
+
+### [Spark] Repartitioning optimization experiments with 1 year data
+Main thing to note:
+  - took >2mins each month for writing to parquet from csv df with minor (time) transformations
+  - took 2mins for whole year for writing to parquet from csv df with no transformations
+- **Observations**: Tried the following:
+  - `df.repartition()` values
+    - best to good: none, 2, 4, 6, 12
+  - location of repartition step
+    - best to good: none, before writing, before filtering
+
+- **Resolution**: Stuff
+
+### [Service] Template
+
+- **Observations**: Stuff
+
+- **Resolution**: Stuff
+
 ## Terrible Mistakes courtesy of Me
 Here is my stupidity in action.
 
@@ -298,6 +371,53 @@ def parse_bash(url_dict):                                       # thinks it rece
 - `curls = parse_link.output.map(parse_bash)`
 - `curls.value[item]`
 - set up smooth error handling in webscraping script if no more remaining results to scrape from page
+- incomplete downloads!!!
+
+```
+PS C:\Users\Joanna> gcloud storage ls --long --readable-sizes gs://test_data_lake_denzoom/raw/austin/
+   7.22MiB  2022-10-24T18:42:49Z  gs://test_data_lake_denzoom/raw/austin/2016_Annual_Crime_Data.csv
+   6.75MiB  2022-10-24T18:43:50Z  gs://test_data_lake_denzoom/raw/austin/2017_Annual_Crime.csv
+   3.91MiB  2022-10-24T18:43:53Z  gs://test_data_lake_denzoom/raw/austin/2018_Annual_Crime.csv
+   7.52MiB  2022-10-24T18:42:57Z  gs://test_data_lake_denzoom/raw/austin/Annual_Crime_Dataset_2015.csv
+TOTAL: 4 objects, 26640531 bytes (25.41MiB)
+PS C:\Users\Joanna> gcloud storage ls --long --readable-sizes gs://test_data_lake_denzoom/raw/chicago/
+  89.26MiB  2022-10-24T18:42:27Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2001.csv
+  90.34MiB  2022-10-24T18:42:36Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2002.csv
+  89.83MiB  2022-10-24T18:43:56Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2003.csv
+  88.80MiB  2022-10-24T18:43:55Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2004.csv
+  85.87MiB  2022-10-24T18:45:00Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2005.csv
+  84.89MiB  2022-10-24T18:45:46Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2006.csv
+  82.77MiB  2022-10-24T18:45:34Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2007.csv
+  80.49MiB  2022-10-24T18:46:31Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2008.csv
+  74.12MiB  2022-10-24T18:46:18Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2009.csv
+  70.33MiB  2022-10-24T18:46:48Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2010.csv
+  69.53MiB  2022-10-24T18:46:59Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2011.csv
+  75.99MiB  2022-10-24T18:47:45Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2012.csv
+  69.53MiB  2022-10-24T18:47:31Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2013.csv
+  62.33MiB  2022-10-24T18:48:04Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2014.csv
+  59.76MiB  2022-10-24T18:50:55Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2015.csv
+  61.19MiB  2022-10-24T18:48:39Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2016.csv
+  60.92MiB  2022-10-24T18:44:34Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2017.csv
+  60.80MiB  2022-10-24T18:49:15Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2018.csv
+  59.37MiB  2022-10-24T18:49:47Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2019.csv
+  48.47MiB  2022-10-24T18:50:54Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2020.csv
+  47.42MiB  2022-10-24T18:51:19Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2021.csv
+  41.85MiB  2022-10-24T18:51:48Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2022.csv
+TOTAL: 22 objects, 1629339498 bytes (1.52GiB)
+PS C:\Users\Joanna> gcloud storage ls --long --readable-sizes gs://test_data_lake_denzoom/raw/san_francisco/
+ 227.24MiB  2022-10-24T18:43:24Z  gs://test_data_lake_denzoom/raw/san_francisco/Police_Department_Incident_Reports_2018_to_Present.csv
+ 525.42MiB  2022-10-24T18:51:54Z  gs://test_data_lake_denzoom/raw/san_francisco/Police_Department_Incident_Reports_Historical_2003_to_May_2018.csv
+TOTAL: 2 objects, 789224651 bytes (752.66MiB)
+PS C:\Users\Joanna> gcloud storage ls --long --readable-sizes gs://test_data_lake_denzoom/raw/los_angeles/
+ 511.52MiB  2022-10-24T18:45:25Z  gs://test_data_lake_denzoom/raw/los_angeles/Crime_Data_from_2010_to_2019.csv
+ 142.99MiB  2022-10-24T18:43:15Z  gs://test_data_lake_denzoom/raw/los_angeles/Crime_Data_from_2020_to_Present.csv
+TOTAL: 2 objects, 686299110 bytes (654.51MiB
+```
+
+- read csv using pandas schema
+  fix timestamp col
+  NTS: always check for NULL values before processing
+  convert to Parquet
 
 ### Before running prod
 - update airflow .env bucket
