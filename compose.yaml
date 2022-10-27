@@ -55,6 +55,7 @@ x-airflow-common:
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
     GOOGLE_APPLICATION_CREDENTIALS: /.google/credentials/${AIRFLOW_CREDS}
     AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT: 'google-cloud-platform://?extra__google_cloud_platform__key_path=/.google/credentials/${AIRFLOW_CREDS}'
+    SPARK_HOSTNAME: ${SPARK_NAME}
   volumes:
     - ${AIRFLOW_HOST}/dags:${INSTALL_LOC}/airflow/dags
     - ${AIRFLOW_HOST}/logs:${INSTALL_LOC}/airflow/logs
@@ -286,7 +287,7 @@ services:
       - "8081:8080"
     environment:
       <<: *project-common-env
-      GOOGLE_APPLICATION_CREDENTIALS: ${SPARK_CREDS}
+      GOOGLE_APPLICATION_CREDENTIALS: /.google/credentials/${SPARK_CREDS}
     volumes:
       - ${SPARK_HOST}:${SPARK_FILES_LOC}
       - ${CREDS_HOST}/spark:/.google/credentials:ro

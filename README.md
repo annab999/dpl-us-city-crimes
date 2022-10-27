@@ -6,18 +6,18 @@ The following are the software (and corresponding versions) used for this projec
 
 | Platform | OS | Software | Version | Notes |
 | --- | --- | :---: | :--: | ---: |
-| desktop | Windows 10 | gcloud SDK | 406.0.0 | workstation |
+| desktop | Windows 10 | gcloud SDK | 407.0.0 | workstation |
 | desktop | Windows 10 | Terraform | 1.3.2 | workstation |
-| VM | CentOS 7 | gcloud SDK | 406.0.0 |  |
+| VM | CentOS 7 | gcloud SDK | 407.0.0 |  |
 | VM | CentOS 7 | Docker Engine | 20.10.20 |  |
 | container | Debian 11 | Python | 3.7.14 | for Airflow |
-| container | Debian 11 | gcloud SDK | 406.0.0 | for Airflow |
+| container | Debian 11 | gcloud SDK | 407.0.0 | for Airflow |
 | container | Debian 11 | Postgres | 13.8 | for Airflow |
 | container | Debian 11 | Apache Airflow | 2.4.2 |  |
 | container | Debian | Anaconda | 4.12 | for Spark |
 | container | Debian | Python | 3.9.12 | for Spark |
 | container | Debian | OpenJDK | 17.0.2 | for Spark |
-| container | Debian | Apache Spark | 3.3.0 |  |
+| container | Debian | Apache Spark | 3.3.1 |  |
 | cloud | - | BigQuery |  | managed |
 | cloud | - | dbt |  | managed |
 
@@ -286,16 +286,35 @@ Sample of an actual successful run:
 - **Resolution**: Remove my initial sleep delay! Set `max_active_tis_per_dag` to < 4
 
 ### [Spark] Repartitioning optimization experiments with 1 year data
-Main thing to note:
+Main thing to note:s
   - took >2mins each month for writing to parquet from csv df with minor (time) transformations
   - took 2mins for whole year for writing to parquet from csv df with no transformations
 - **Observations**: Tried the following:
-  - `df.repartition()` values
-    - best to good: none, 2, 4, 6, 12
-  - location of repartition step
-    - best to good: none, before writing, before filtering
+  - `df.repartition()` values (best to good location of repartition step)
+    - Chicago: none, 2, 4, 6, 12
+      - location of repartition step: none, before writing, before filtering
+    - San Francisco (best to good):
+      - before writing
+        - 12, 16, 24, none, 8, 32
+      - before parsing years list
+        - none, 12, 24, 18
+    - Los Angeles (best to good):
+      - before writing
+        - 24, 12, 20, 10
 
-- **Resolution**: Stuff
+- **Resolution**: more experiments, but most especially: read more on optimizations (repartition, coalesce, parallelize, cache)
+
+### [Spark-Airflow] Getting remote spark-submit to work remotely
+Manual trial from Airflow container:
+```
+$ spark-submit
+/home/airflow/.local/lib/python3.7/site-packages/pyspark/bin/load-spark-env.sh: line 68: ps: command not found
+JAVA_HOME is not set
+```
+
+- **Observations**: Turns out, as opposed to instructions online to unpack spark tgz onto remote Airflow executor, Spark binaries are already on the machine upon install of `apache-airflow-providers-apache-spark` pip module, and are already callable from `/home/airflow/.local/bin`, which is also already in `PATH`.
+
+- **Resolution**: Need to install `procps` and Spark prerequisite OpenJDK during build of Airflow images
 
 ### [Service] Template
 
@@ -371,8 +390,21 @@ def parse_bash(url_dict):                                       # thinks it rece
 - `curls = parse_link.output.map(parse_bash)`
 - `curls.value[item]`
 - set up smooth error handling in webscraping script if no more remaining results to scrape from page
-- incomplete downloads!!!
+- remove duplicates in records
+- read pq, set up cols, add col for each type, union all, sql queries (groupby loc, date/mon, type; sums and avgs), write report
+- NTS: always check for NULL values, duplicates before processing
+- strip whitespace from austin 'Highest NIBRS/UCR Offense Description', 'GO Location'
+  - F.trim('Highest NIBRS/UCR Offense Description')
+- remove whitespace from los angeles within Location, Cross Street
+- try `deploy-mode - Whether to deploy your driver on the worker nodes (cluster) or locally as an external client (client).`
 
+### Before running prod
+- update airflow .env bucket
+- remove DEBUG logging, example dags
+- upgrade version
+  - airflow gcloud 406
+
+### File sizes for reference
 ```
 PS C:\Users\Joanna> gcloud storage ls --long --readable-sizes gs://test_data_lake_denzoom/raw/austin/
    7.22MiB  2022-10-24T18:42:49Z  gs://test_data_lake_denzoom/raw/austin/2016_Annual_Crime_Data.csv
@@ -413,14 +445,3 @@ PS C:\Users\Joanna> gcloud storage ls --long --readable-sizes gs://test_data_lak
  142.99MiB  2022-10-24T18:43:15Z  gs://test_data_lake_denzoom/raw/los_angeles/Crime_Data_from_2020_to_Present.csv
 TOTAL: 2 objects, 686299110 bytes (654.51MiB
 ```
-
-- read csv using pandas schema
-  fix timestamp col
-  NTS: always check for NULL values before processing
-  convert to Parquet
-
-### Before running prod
-- update airflow .env bucket
-- remove DEBUG logging, example dags
-- upgrade version
-  - airflow gcloud 406
