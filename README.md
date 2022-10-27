@@ -311,6 +311,7 @@ $ spark-submit
 /home/airflow/.local/lib/python3.7/site-packages/pyspark/bin/load-spark-env.sh: line 68: ps: command not found
 JAVA_HOME is not set
 ```
+When to start Spark master? Must add py files, path, jar file path to Airflow build
 
 - **Observations**: Turns out, as opposed to instructions online to unpack spark tgz onto remote Airflow executor, Spark binaries are already on the machine upon install of `apache-airflow-providers-apache-spark` pip module, and are already callable from `/home/airflow/.local/bin`, which is also already in `PATH`.
 
@@ -396,7 +397,7 @@ def parse_bash(url_dict):                                       # thinks it rece
 - strip whitespace from austin 'Highest NIBRS/UCR Offense Description', 'GO Location'
   - F.trim('Highest NIBRS/UCR Offense Description')
 - remove whitespace from los angeles within Location, Cross Street
-- try `deploy-mode - Whether to deploy your driver on the worker nodes (cluster) or locally as an external client (client).`
+- try `deploy-mode - Whether to deploy your driver on the worker nodes (cluster) or locally as an external client (client) -> default.`
 
 ### Before running prod
 - update airflow .env bucket
