@@ -13,7 +13,7 @@ RUN apt-get update -qq && apt-get install vim procps -qqq
 
 ARG AIRFLOW_USER
 ARG INSTALL_DIR
-ARG CLOUD_SDK_VERSION=406.0.0
+ARG CLOUD_SDK_VERSION=407.0.0
 
 ARG JAR_FILE=gcs-connector-hadoop3-latest.jar
 ARG JAR_LOC=${INSTALL_DIR}/hadoop-lib
