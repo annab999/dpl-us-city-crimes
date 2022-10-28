@@ -400,7 +400,8 @@ When to start Spark master? Must add py files, path, jar file path to Airflow bu
   - F.trim('Highest NIBRS/UCR Offense Description')
 - remove whitespace from los angeles within Location, Cross Street
 - try spark submit in cluster mode
-- try user defined macros for curls func
+- try user defined macros for curls func, templates_dict for pythonop
+- use task decorators
 
 ### Before running prod
 - update airflow .env bucket

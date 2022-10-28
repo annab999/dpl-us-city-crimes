@@ -28,6 +28,9 @@ with DAG(
     default_args = def_args,
     template_searchpath = "/opt/airflow/include",
     max_active_runs = 2,
+    user_defined_macros = {
+        'jar_path': os.getenv('JAR_FILE_LOC')
+    },
     tags = ['project', 'TEST']
 ) as dag:
 
@@ -66,7 +69,7 @@ with DAG(
             conn_id = 'project_spark',
             name = f'prepare_data_{city}',
             py_files = 'city_vars.py',
-            jars = jar_path,
+            jars = '{{ jar_path }}',
             application_args = [city, ],      # <list of args>, {city}
             verbose = True              # for debugging,
         )
