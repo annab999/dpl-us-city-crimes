@@ -59,6 +59,70 @@ Below are my own info logs. This had been causing issues with opening the csv fi
   
 - **Resolution**: Modify code to use relative path prefix var in `open()` method
 
+## Terrible Mistakes courtesy of Me
+Here is my stupidity in action.
+
+### [Airflow] TM #1: wrong input type (`dict` of `list`s) passed to `map()` callable
+```
+parse_link = PythonOperator(
+    task_id = f'parse_link_{city}',
+    python_callable = parse_py,
+    op_kwargs = {'name': city, 'ext': fmt['in'], 'gs': gcs_bkt}
+)
+...
+def parse_py(name, gs, ext):
+...
+  return {'name': name, 'fnames': fnames, 'urls': urls, 'gs': gs, 'ext': ext}   # returns a dict
+...
+curls = parse_link.output.map(parse_bash)                                       # expects a list
+```
+
+- **Observations**: Only noticed while diff-ing with trial DAG that worked (using XCom) :( I sincerely thought that the errors were issues with XCom / dynamic task mapping / `.expand()`, because I was using a combo of this in this part.
+
+  So all my searches were around these lines, and nothing I find could really directly pertain to my issue. My snobbish self even thought I was affected by https://github.com/apache/airflow/issues/25061, but of course not.
+
+  Until I played around and diff-ed with a test using ID-ed XCom arg that worked.
+  
+- **Resolution**: Fix function to return `list` (of `dict`s)
+
+### [Airflow] TM #2: wrong input type (`list`) defined and coded in `map()` callable
+```
+[2022-10-18T13:02:19.000+0000] {taskinstance.py:1851} ERROR - Task failed with exception
+Traceback (most recent call last):
+  File "/home/airflow/.local/lib/python3.7/site-packages/airflow/models/taskinstance.py", line 1457, in _run_raw_task
+    self._execute_task_with_callbacks(context, test_mode)
+  File "/home/airflow/.local/lib/python3.7/site-packages/airflow/models/taskinstance.py", line 1576, in _execute_task_with_callbacks
+    task_orig = self.render_templates(context=context)
+  File "/home/airflow/.local/lib/python3.7/site-packages/airflow/models/taskinstance.py", line 2199, in render_templates
+    original_task.render_template_fields(context)
+  File "/home/airflow/.local/lib/python3.7/site-packages/airflow/models/mappedoperator.py", line 762, in render_template_fields
+    mapped_kwargs, seen_oids = self._expand_mapped_kwargs(context, session)
+  File "/home/airflow/.local/lib/python3.7/site-packages/airflow/models/mappedoperator.py", line 539, in _expand_mapped_kwargs
+    return self._get_specified_expand_input().resolve(context, session)
+  File "/home/airflow/.local/lib/python3.7/site-packages/airflow/models/expandinput.py", line 149, in resolve
+    data = {k: self._expand_mapped_field(k, v, context, session=session) for k, v in self.value.items()}
+  File "/home/airflow/.local/lib/python3.7/site-packages/airflow/models/expandinput.py", line 149, in <dictcomp>
+    data = {k: self._expand_mapped_field(k, v, context, session=session) for k, v in self.value.items()}
+  File "/home/airflow/.local/lib/python3.7/site-packages/airflow/models/expandinput.py", line 140, in _expand_mapped_field
+    return value[found_index]
+  File "/home/airflow/.local/lib/python3.7/site-packages/airflow/models/xcom_arg.py", line 351, in __getitem__
+    value = self.value[index]
+KeyError: 0
+```
+My code was:
+```
+curls = parse_link.output.map(parse_bash)                       # returns a list
+...
+def parse_bash(url_dict):                                       # thinks it receives a dict
+                                                                # entire content of code parses on a dict
+```
+
+- **Observations**: Kept getting this error and kept thinking it was again (as the earlier related issue) an Airflow bug with the combo of features I was working on. Only realized the *real* after issue after having fixed the earlier issue with a set of more self-aware eyes.
+
+- **Resolution**: Fix function to use arg of each individual item of the mapped `list` (alternatively, could use combo of `.expand_kwargs()` and a separate function)
+
+## Back to Development Issues
+
 ### [Airflow] DAGs/tasks sometimes become non-performant/buggy even with fixes
 *I wasn't able to take a screenshot, but the boxes for dead tasks are flattened squares instead of the usual. And they're never executed nor shaded any color at all.*
 - **Observations**: This happens after multiple edits to the DAG file and its tasks. It's like Airflow DB drowns in confusion and doesn't recover, for that DAG.
@@ -193,7 +257,7 @@ PermissionError: [Errno 13] Permission denied: '/home/spark_files/.local'
   drwxr-xr-x. 3                      1000 root                        19 Oct 21 18:25 .local
   ```
 
-  - **Resolution**: apply `chown :0 -R <host_dir_of_bind_mount` once on *host side* of the bind mount, as `root` while in container
+  - **Resolution**: apply `chown :0 -R <host_dir_of_bind_mount>` once on *host side* of the bind mount, as `root` while in container
 
 ### [Docker] Weird storage issues with build cache
 Did the following upon next day's boot of host (even though I cleaned everything the night before):
@@ -313,7 +377,7 @@ JAVA_HOME is not set
 ```
 When to start Spark master? Must add py files, path, jar file path to Airflow build
 
-- **Observations**: Turns out, as opposed to instructions online to unpack spark tgz onto remote Airflow executor, Spark binaries are already on the machine upon install of `apache-airflow-providers-apache-spark` pip module, and are already callable from `/home/airflow/.local/bin`, which is also already in `PATH`.
+- **Observations**: Turns out that as opposed to instructions online to unpack [Spark tgz](https://spark.apache.org/downloads.html) onto remote Airflow executor, Spark binaries are already in my Airflow containers upon install of `apache-airflow-providers-apache-spark` pip module, and are already callable from `/home/airflow/.local/bin` (already in `PATH`).
 
 - **Resolution**: Need to install `procps` and Spark prerequisite OpenJDK during build of Airflow images
 
@@ -322,68 +386,6 @@ When to start Spark master? Must add py files, path, jar file path to Airflow bu
 - **Observations**: Stuff
 
 - **Resolution**: Stuff
-
-## Terrible Mistakes courtesy of Me
-Here is my stupidity in action.
-
-### [Airflow] TM #1: wrong input type (`dict` of `list`s) passed to `map()` callable
-```
-parse_link = PythonOperator(
-    task_id = f'parse_link_{city}',
-    python_callable = parse_py,
-    op_kwargs = {'name': city, 'ext': fmt['in'], 'gs': gcs_bkt}
-)
-...
-def parse_py(name, gs, ext):
-...
-  return {'name': name, 'fnames': fnames, 'urls': urls, 'gs': gs, 'ext': ext}   # returns a dict
-...
-curls = parse_link.output.map(parse_bash)                                       # expects a list
-```
-
-- **Observations**: Only noticed while diff-ing with trial DAG that worked (using XCom) :( I sincerely thought that the errors were issues with XCom / dynamic task mapping / `.expand()`, because I was using a combo of this in this part.
-
-  So all my searches were around these lines, and nothing I find could really directly pertain to my issue. My snobbish self even thought I was affected by https://github.com/apache/airflow/issues/25061, but of course not.
-
-  Until I played around and diff-ed with a test using ID-ed XCom arg that worked.
-  
-- **Resolution**: Fix function to return `list` (of `dict`s)
-
-### [Airflow] TM #2: wrong input type (`list`) defined and coded in `map()` callable
-```
-[2022-10-18T13:02:19.000+0000] {taskinstance.py:1851} ERROR - Task failed with exception
-Traceback (most recent call last):
-  File "/home/airflow/.local/lib/python3.7/site-packages/airflow/models/taskinstance.py", line 1457, in _run_raw_task
-    self._execute_task_with_callbacks(context, test_mode)
-  File "/home/airflow/.local/lib/python3.7/site-packages/airflow/models/taskinstance.py", line 1576, in _execute_task_with_callbacks
-    task_orig = self.render_templates(context=context)
-  File "/home/airflow/.local/lib/python3.7/site-packages/airflow/models/taskinstance.py", line 2199, in render_templates
-    original_task.render_template_fields(context)
-  File "/home/airflow/.local/lib/python3.7/site-packages/airflow/models/mappedoperator.py", line 762, in render_template_fields
-    mapped_kwargs, seen_oids = self._expand_mapped_kwargs(context, session)
-  File "/home/airflow/.local/lib/python3.7/site-packages/airflow/models/mappedoperator.py", line 539, in _expand_mapped_kwargs
-    return self._get_specified_expand_input().resolve(context, session)
-  File "/home/airflow/.local/lib/python3.7/site-packages/airflow/models/expandinput.py", line 149, in resolve
-    data = {k: self._expand_mapped_field(k, v, context, session=session) for k, v in self.value.items()}
-  File "/home/airflow/.local/lib/python3.7/site-packages/airflow/models/expandinput.py", line 149, in <dictcomp>
-    data = {k: self._expand_mapped_field(k, v, context, session=session) for k, v in self.value.items()}
-  File "/home/airflow/.local/lib/python3.7/site-packages/airflow/models/expandinput.py", line 140, in _expand_mapped_field
-    return value[found_index]
-  File "/home/airflow/.local/lib/python3.7/site-packages/airflow/models/xcom_arg.py", line 351, in __getitem__
-    value = self.value[index]
-KeyError: 0
-```
-My code was:
-```
-curls = parse_link.output.map(parse_bash)                       # returns a list
-...
-def parse_bash(url_dict):                                       # thinks it receives a dict
-                                                                # entire content of code parses on a dict
-```
-
-- **Observations**: Kept getting this error and kept thinking it was again (as the earlier related issue) an Airflow bug with the combo of features I was working on. Only realized the *real* after issue after having fixed the earlier issue with a set of more self-aware eyes.
-
-- **Resolution**: Fix function to use arg of each individual item of the mapped `list` (alternatively, could use combo of `.expand_kwargs()` and a separate function)
 
 ## TODOs:
 - dag running per year but parsing is lahat
@@ -397,7 +399,8 @@ def parse_bash(url_dict):                                       # thinks it rece
 - strip whitespace from austin 'Highest NIBRS/UCR Offense Description', 'GO Location'
   - F.trim('Highest NIBRS/UCR Offense Description')
 - remove whitespace from los angeles within Location, Cross Street
-- try `deploy-mode - Whether to deploy your driver on the worker nodes (cluster) or locally as an external client (client) -> default.`
+- try spark submit in cluster mode
+- try user defined macros for curls func
 
 ### Before running prod
 - update airflow .env bucket

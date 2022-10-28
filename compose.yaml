@@ -55,7 +55,7 @@ x-airflow-common:
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
     GOOGLE_APPLICATION_CREDENTIALS: /.google/credentials/${AIRFLOW_CREDS}
     AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT: 'google-cloud-platform://?extra__google_cloud_platform__key_path=/.google/credentials/${AIRFLOW_CREDS}'
-    SPARK_HOSTNAME: ${SPARK_NAME}
+    AIRFLOW_CONN_PROJECT_SPARK: 'spark://${SPARK_HOSTNAME}:7077'
   volumes:
     - ${AIRFLOW_HOST}/dags:${INSTALL_LOC}/airflow/dags
     - ${AIRFLOW_HOST}/logs:${INSTALL_LOC}/airflow/logs
