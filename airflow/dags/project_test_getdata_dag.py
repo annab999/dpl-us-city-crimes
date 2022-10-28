@@ -62,16 +62,18 @@ with DAG(
         #       or the $SPARK_HOME is set in the extra on the connection.
         prepare_data = SparkSubmitOperator(
             task_id = f'prepare_data_{city}',
-            application = '',           # <app.py>
-            conf = '',                  # <spark-conf>
-            name = "project-airflow-spark",
-            application_args = '',      # <list of args>, {city}
-            verbose = True              # for debugging
+            application = 'project_file_read.py',           # <app.py>
+            conn_id = 'project_spark',
+            name = f'prepare_data_{city}',
+            py_files = 'city_vars.py',
+            jars = jar_path,
+            application_args = [city, ],      # <list of args>, {city}
+            verbose = True              # for debugging,
         )
 
     printer('\n--------after spark--------\n')
 
     # # task dependencies
 #    tg >> prepare_data
-    tg
+    tg >> prepare_data
     printer('\n--------dag done--------\n')
