@@ -13,7 +13,7 @@ RUN apt-get update -qq && apt-get install vim -qqq
 
 ARG AIRFLOW_USER
 ARG INSTALL_DIR
-ARG CLOUD_SDK_VERSION=406.0.0
+ARG CLOUD_SDK_VERSION=407.0.0
 ENV AIRFLOW_HOME=${INSTALL_DIR}/airflow
 ENV GCLOUD_HOME=${INSTALL_DIR}/google-cloud-sdk
 
