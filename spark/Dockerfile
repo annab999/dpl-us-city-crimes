@@ -8,6 +8,7 @@ USER root
 # arg and env vars
 ARG INSTALL_DIR
 ARG FILES_DIR
+ARG JDK_FILE=openjdk-17.0.2_linux-x64_bin.tar.gz
 ARG SPARK_VERSION=spark-3.3.1-bin-hadoop3
 ARG JAR_FILE=gcs-connector-hadoop3-latest.jar
 ARG JAR_LOC=${INSTALL_DIR}/hadoop-lib
@@ -27,14 +28,14 @@ RUN useradd --shell /bin/bash --create-home --gid 0 spark-user \
 WORKDIR ${INSTALL_DIR}
 
 # downloads
-RUN JDK_URL=https://download.java.net/java/GA/jdk17.0.2/dfd4a8d0985749f896bed50d7138ee7f/8/GPL/openjdk-17.0.2_linux-x64_bin.tar.gz \
+RUN JDK_URL=https://download.java.net/java/GA/jdk17.0.2/dfd4a8d0985749f896bed50d7138ee7f/8/GPL/${JDK_FILE} \
     && SPARK_URL=https://dlcdn.apache.org/spark/spark-3.3.1/${SPARK_VERSION}.tgz \
     && CONNECTOR_URL=https://storage.googleapis.com/hadoop-lib/gcs/${JAR_FILE} \
     && wget "${JDK_URL}" "${SPARK_URL}" --quiet \
     && wget "${CONNECTOR_URL}" --directory-prefix ${JAR_LOC} --quiet \
-    && tar --extract --gzip --file openjdk-17.0.2_linux-x64_bin.tar.gz \
+    && tar --extract --gzip --file ${JDK_FILE} \
     && tar --extract --gzip --file ${SPARK_VERSION}.tgz \
-    && rm openjdk-17.0.2_linux-x64_bin.tar.gz ${SPARK_VERSION}.tgz
+    && rm ${JDK_FILE} ${SPARK_VERSION}.tgz
 
 # PATH env vars edit
 ENV PATH="${SPARK_HOME}/bin:${JAVA_HOME}/bin:${PATH}"

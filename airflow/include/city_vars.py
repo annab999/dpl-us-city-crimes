@@ -2,9 +2,13 @@
 
 from pyspark.sql import types
 
+cities = ['Chicago', 'San Francisco', 'Los Angeles', 'Austin']
+f_cities = [c.replace(' ', '_').lower() for c in cities]
+
 # modified pattern from pandas schema
 
 dict_chicago = {
+    'formatted': f_cities[0],
     'schema_template': types.StructType([
         types.StructField('Case Number', types.StringType(), True),
         types.StructField('Date', types.StringType(), True),
@@ -32,6 +36,7 @@ dict_chicago = {
 }
 
 dict_san_francisco = {
+    'formatted': f_cities[1],
     'schema_template': types.StructType([
         types.StructField('PdId', types.LongType(), True),
         types.StructField('IncidntNum', types.IntegerType(), True),
@@ -76,6 +81,7 @@ dict_san_francisco = {
 }
 
 dict_los_angeles = {
+    'formatted': f_cities[2],
     'schema_template': types.StructType([
         types.StructField('DR_NO', types.LongType(), True),
         types.StructField('Date Rptd', types.StringType(), True),
@@ -113,6 +119,7 @@ dict_los_angeles = {
 }
 
 dict_austin = {
+    'formatted': f_cities[3],
     'schema_template': types.StructType([
         types.StructField('GO Primary Key', types.IntegerType(), True),
         types.StructField('Council District', types.IntegerType(), True),
@@ -135,8 +142,8 @@ dict_austin = {
 }
 
 dict_cities = {
-    'chicago': dict_chicago,
-    'san_francisco': dict_san_francisco,
-    'los_angeles': dict_los_angeles,
-    'austin': dict_austin
+    cities[0]: dict_chicago,
+    cities[1]: dict_san_francisco,
+    cities[2]: dict_los_angeles,
+    cities[3]: dict_austin
 }

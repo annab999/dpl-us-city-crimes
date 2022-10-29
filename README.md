@@ -37,7 +37,7 @@ Here are the issues I encountered in setting up the project.
   ~~(Also, DAG runs)~~ *-> no idea what this is for but I'll keep it here in case I remember.*
 
   Found https://github.com/apache/airflow/discussions/20693 confirming it's an unresolved bug. A suggested, unconfirmed fix mentioned (at the bottom) of the thread is to:
-  > Get the Xcom instead of XcomArg in Jinjia template or inside task callback function
+  > Get the Xcom instead of XcomArg in Jinja template or inside task callback function
   
   Again, unconfirmed and, can't really apply this to my BashOp.
   
