@@ -7,7 +7,7 @@ def printer(msg):
 
     logging.info(msg)
 
-def parse_py(name, gs, ext):
+def parse_py(name, ext):
     """
     parse download links from csv file for city
     """
@@ -19,17 +19,16 @@ def parse_py(name, gs, ext):
         content = csv.DictReader(read_file)
         for row in content:
             fname = row['dataset'].replace(' ', '_').replace(':', '')
-            urls.append({'name': name, 'gs': gs, 'ext': ext, 'fname': fname, 'url': row['download_url']})
-
+            urls.append({'fname': fname, 'url': row['download_url']})
     return urls
 
 def parse_bash(item):
     """
     parse download-upload commands from list of links for city
     """
-    gs_path = item['gs'] + '/raw/' + item['name']
+    gs_path = '$gs' + '/raw/' + '$name'
     up_command = 'gcloud storage cp - ' + gs_path
-    curl = f"curl {item['url']} | {up_command}/{item['fname']}{item['ext']}"
+    curl = f"curl {item['url']} | {up_command}/{item['fname']}$ext"
     printer(f'-----{curl}----------')
 
     return curl
