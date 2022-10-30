@@ -5,16 +5,14 @@ from airflow import DAG
 from airflow.utils.task_group import TaskGroup
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
+
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
+from airflow.providers.google.cloud.operators.gcs import GCSListObjectsOperator
 
 from task_functions import parse_py, parse_bash, printer
 
 # proj = os.getenv('GCP_PROJECT_ID')
-# gcs_bkt = 'gs://' + proj + '-project'
-gcs_bkt = os.getenv('GCP_GCS_BUCKET')
-cities = ['Chicago', 'San Francisco', 'Los Angeles', 'Austin']
-fmt = {'in': '.csv', 'out': '.parquet'}
-
+# gs_bkt = 'gs://' + proj + '-project'
 def_args = {
     "owner": "airflow",
     "depends_on_past": False,
@@ -29,14 +27,20 @@ with DAG(
     template_searchpath = "/opt/airflow/include",
     max_active_runs = 2,
     user_defined_macros = {
-        'jar_path': os.getenv('JAR_FILE_LOC')
+        'gs_bkt': os.getenv('GCP_GCS_BUCKET'),  # UPDATE ME IN PROD
+        'jar_path': os.getenv('JAR_FILE_LOC')   # try HTTP URL
+    },
+    user_defined_filters = {
+        'fmt': (lambda drxn: '.csv' if drxn=='in' else '.parquet'),
+        'no_gs': (lambda url: url.replace('gs://', ''))
     },
     tags = ['project', 'TEST']
 ) as dag:
 
+    cities = ['Chicago', 'San Francisco', 'Los Angeles', 'Austin']
     f_cities = [city.replace(' ', '_').lower() for city in cities]
     
-    with TaskGroup(group_id = 'files_tg') as tg:
+    with TaskGroup(group_id = 'files_tg') as tg1:
             
         for city in f_cities:
             parse_link = PythonOperator(
@@ -44,39 +48,50 @@ with DAG(
                 python_callable = parse_py,
                 op_kwargs = {
                     'name': city,
-                    'ext': fmt['in'],
-                    'gs': gcs_bkt
+                    'ext': "{{ 'in' | fmt }}"
                 }
             )
             curls = parse_link.output.map(parse_bash)
             down_up = BashOperator \
                 .partial(
                     task_id = f'down_up_{city}',
-                    max_active_tis_per_dag = 3) \
+                    max_active_tis_per_dag = 3,
+                    env = {
+                        'name': city,
+                        'gs': '{{ gs_bkt }}',
+                        'ext': "{{ 'in' | fmt }}"
+                    }) \
                 .expand(bash_command = curls)
 
             parse_link >> down_up
+            printer('\n--------after tg1--------\n')
             
-    printer('\n--------after tg--------\n')
+    with TaskGroup(group_id = 'data_tg') as tg2:
+        for city in f_cities:
+            list_data = GCSListObjectsOperator(
+                task_id = f'list_data_{city}',
+                bucket = '{{ gs_bkt | no_gs }}',  # UPDATE ME IN PROD
+                gcp_conn_id = 'google_cloud_test',
+                prefix = 'raw/',
+                delimiter = "{{ 'in' | fmt }}",
+            )
 
-    for city in f_cities:
-        # launch Spark app running preprocessing script/s
-        # requires that the “spark-submit” binary is in the PATH
-        #       or the $SPARK_HOME is set in the extra on the connection.
-        prepare_data = SparkSubmitOperator(
-            task_id = f'prepare_data_{city}',
-            application = 'project_file_read.py',           # <app.py>
-            conn_id = 'project_spark',
-            name = f'prepare_data_{city}',
-            py_files = 'city_vars.py',
-            jars = '{{ jar_path }}',
-            application_args = [city, ],      # <list of args>, {city}
-            verbose = True              # for debugging,
-        )
+            prepare_data = SparkSubmitOperator \
+                .partial(
+                    task_id = f'prepare_data_{city}',
+                    application = 'project_file_read.py',
+                    conn_id = 'project_spark',
+                    name = f'prepare_data_{city}',
+                    py_files = 'city_vars.py',
+                    jars = '{{ jar_path }}',
+                    verbose = True) \
+                .expand(application_args = [
+                    city,
+                    '{{ gs_bkt }}',
+                    list_data.output])
 
-    printer('\n--------after spark--------\n')
+            list_data >> prepare_data
+            printer('\n--------after spark--------\n')
 
-    # # task dependencies
-#    tg >> prepare_data
-    tg >> prepare_data
+    tg1 >> tg2
     printer('\n--------dag done--------\n')
