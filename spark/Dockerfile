@@ -39,7 +39,7 @@ RUN JDK_URL=https://download.java.net/java/GA/jdk17.0.2/dfd4a8d0985749f896bed50d
 
 # PATH env vars edit
 ENV PATH="${SPARK_HOME}/bin:${JAVA_HOME}/bin:${PATH}"
-ENV PYTHONPATH="${SPARK_HOME}/python/lib/py4j-0.10.9.5-src.zip:${SPARK_HOME}/python:$PYTHONPATH"
+ENV PYTHONPATH="${SPARK_HOME}/python/lib/$(ls ${SPARK_HOME}/python/lib/ | grep py4j):${SPARK_HOME}/python:$PYTHONPATH"
 
 # set up work area
 USER spark-user
@@ -49,4 +49,5 @@ RUN mkdir -p "${FILES_HOME}" \
     && pip install --no-cache-dir -r requirements.txt
 WORKDIR "${FILES_HOME}"
 
+# CMD [ "${SPARK_HOME}/sbin/start-master.sh" ]
 CMD [ "jupyter", "notebook", "--ip=0.0.0.0", "--no-browser" ]

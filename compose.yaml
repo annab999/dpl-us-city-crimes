@@ -54,7 +54,7 @@ x-airflow-common:
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth'
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
     GOOGLE_APPLICATION_CREDENTIALS: /.google/credentials/${AIRFLOW_CREDS}
-    AIRFLOW_CONN_GOOGLE_CLOUD_TESTs: 'google-cloud-platform://?extra__google_cloud_platform__key_path=%2F.google%2Fcredentials%2F${AIRFLOW_CREDS}&extra__google_cloud_platform__project=${GCP_PROJ}'
+    AIRFLOW_CONN_GOOGLE_CLOUD_TEST: 'google-cloud-platform://?extra__google_cloud_platform__key_path=%2F.google%2Fcredentials%2F${AIRFLOW_CREDS}&extra__google_cloud_platform__project=${GCP_PROJ}'
     AIRFLOW_CONN_PROJECT_SPARK: 'spark://${SPARK_HOSTNAME}:7077'
   volumes:
     - ${AIRFLOW_HOST}/dags:${INSTALL_LOC}/airflow/dags

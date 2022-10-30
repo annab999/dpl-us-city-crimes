@@ -1,5 +1,3 @@
-# First-time build can take upto 10 mins.
-
 FROM apache/airflow
 
 SHELL ["/bin/bash", "-o", "pipefail", "-e", "-u", "-x", "-c"]
@@ -20,20 +18,17 @@ ENV JAR_FILE_LOC=https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-had
 ENV AIRFLOW_HOME=${INSTALL_DIR}/airflow
 ENV GCLOUD_HOME=${INSTALL_DIR}/google-cloud-sdk
 ENV JAVA_HOME=${INSTALL_DIR}/jdk-17.0.2
-
 ENV PATH="${GCLOUD_HOME}/bin/:${JAVA_HOME}/bin:${PATH}"
 
-RUN GCLOUD_URL="https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz" \
-    && JDK_URL=https://download.java.net/java/GA/jdk17.0.2/dfd4a8d0985749f896bed50d7138ee7f/8/GPL/${JDK_FILE} \
-    # install Java
-    && wget "${JDK_URL}" --quiet \
-    && tar --extract --gzip --file ${JDK_FILE} \
-    && rm ${JDK_FILE} \
-    # install gcloud SDK
+RUN JDK_URL=https://download.java.net/java/GA/jdk17.0.2/dfd4a8d0985749f896bed50d7138ee7f/8/GPL/${JDK_FILE} \
+    && GCLOUD_URL="https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz" \
     && TMP_DIR="$(mktemp -d)" \
+    # install Java
+    && curl -fL "${JDK_URL}" --output "${TMP_DIR}"/${JDK_FILE} \
+    && tar --extract --gzip --file="${TMP_DIR}"/${JDK_FILE} --directory=${INSTALL_DIR} \
+    # install gcloud SDK
     && curl -fL "${GCLOUD_URL}" --output "${TMP_DIR}/google-cloud-sdk.tar.gz" \
-    && mkdir -p "${GCLOUD_HOME}" \
-    && tar xzf "${TMP_DIR}/google-cloud-sdk.tar.gz" -C "${GCLOUD_HOME}" --strip-components=1 \
+    && tar --extract --gzip --file="${TMP_DIR}/google-cloud-sdk.tar.gz" --directory=${INSTALL_DIR} \
     && "${GCLOUD_HOME}/install.sh" \
        --bash-completion=false \
        --path-update=false \
