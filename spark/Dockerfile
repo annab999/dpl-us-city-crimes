@@ -35,11 +35,12 @@ RUN JDK_URL=https://download.java.net/java/GA/jdk17.0.2/dfd4a8d0985749f896bed50d
     && wget "${CONNECTOR_URL}" --directory-prefix ${JAR_LOC} --quiet \
     && tar --extract --gzip --file ${JDK_FILE} \
     && tar --extract --gzip --file ${SPARK_VERSION}.tgz \
-    && rm ${JDK_FILE} ${SPARK_VERSION}.tgz
+    && rm ${JDK_FILE} ${SPARK_VERSION}.tgz \
+    && chown -R spark-user "${SPARK_HOME}"
 
 # PATH env vars edit
 ENV PATH="${SPARK_HOME}/bin:${JAVA_HOME}/bin:${PATH}"
-ENV PYTHONPATH="${SPARK_HOME}/python/lib/$(ls ${SPARK_HOME}/python/lib/ | grep py4j):${SPARK_HOME}/python:$PYTHONPATH"
+ENV PYTHONPATH="${SPARK_HOME}/python/lib/py4j-0.10.9.5-src.zip:${SPARK_HOME}/python:${PYTHONPATH}"
 
 # set up work area
 USER spark-user

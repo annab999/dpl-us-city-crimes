@@ -80,16 +80,16 @@ with DAG(
             prepare_data = SparkSubmitOperator \
                 .partial(
                     task_id = f'prepare_data_{city}',
-                    application = 'project_file_read.py',
-                    conn_id = 'project_spark',
+                    application = 'test_file_read.py',
+                    conn_id = 'try_spark',
                     name = f'prepare_data_{city}',
                     py_files = 'city_vars.py',
                     jars = '{{ jar_path }}',
+                    env_vars = {
+                        'city_name': city,
+                        'gcs_bkt': '{{ gs_bkt }}'},
                     verbose = True) \
-                .expand(application_args = [
-                    city,
-                    '{{ gs_bkt }}',
-                    list_fpaths.output])
+                .expand(application_args = [list_fpaths.output])
 
             list_fpaths >> prepare_data
             printer('\n--------after spark--------\n')
