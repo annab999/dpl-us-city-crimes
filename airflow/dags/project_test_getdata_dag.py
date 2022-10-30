@@ -60,7 +60,8 @@ with DAG(
                         'name': city,
                         'gs': '{{ gs_bkt }}',
                         'ext': "{{ 'in' | fmt }}"
-                    }) \
+                    },
+                    append_env = True) \
                 .expand(bash_command = curls)
 
             parse_link >> down_up
@@ -68,12 +69,12 @@ with DAG(
             
     with TaskGroup(group_id = 'data_tg') as tg2:
         for city in f_cities:
-            list_data = GCSListObjectsOperator(
-                task_id = f'list_data_{city}',
+            list_fpaths = GCSListObjectsOperator(
+                task_id = f'list_fpaths_{city}',
                 bucket = '{{ gs_bkt | no_gs }}',  # UPDATE ME IN PROD
                 gcp_conn_id = 'google_cloud_test',
-                prefix = 'raw/',
-                delimiter = "{{ 'in' | fmt }}",
+                prefix = f'raw/{city}/',
+                delimiter = "{{ 'in' | fmt }}"
             )
 
             prepare_data = SparkSubmitOperator \
@@ -88,9 +89,9 @@ with DAG(
                 .expand(application_args = [
                     city,
                     '{{ gs_bkt }}',
-                    list_data.output])
+                    list_fpaths.output])
 
-            list_data >> prepare_data
+            list_fpaths >> prepare_data
             printer('\n--------after spark--------\n')
 
     tg1 >> tg2
