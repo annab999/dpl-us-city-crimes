@@ -6,7 +6,7 @@
 #       --py-files city_vars.py \
 #       project_file_read.py \
 #           <city> \
-#           <fname> \
+#           <fpath> \
 #           $GCP_GCS_BUCKET
 
 from pyspark.conf import SparkConf
@@ -29,13 +29,13 @@ parser.add_argument('city',
     help = 'specify 1 of the 4 city templates',
     required = True)
 parser.add_argument('gs', help = 'GCS bucket URL in gs:// format', required = True)
-parser.add_argument('fname', help = 'CSV file name', required = True)
+parser.add_argument('fpath', help = 'CSV file name and path prefix, e.g. <dir1>/<subdir>/<fname>.<ext>', required = True)
 args = parser.parse_args()
 
 # parsed inputs
 city = args.city
 gs_bkt = args.gs
-fname = args.fname
+fpath = args.fpath
 
 # for city-specific data
 dict_city = dict_cities[city]
@@ -63,7 +63,7 @@ spark = SparkSession.builder \
 df_csv = spark.read \
     .option("header", "true") \
     .schema(dict_city['schema_template']) \
-    .csv(f"{gs_bkt}/raw/{dict_city['formatted']}/{fname}")
+    .csv(f"{gs_bkt}/{fpath}")
 
 ####### CHECKER ############################
 logging.info('----------------- creds path is' + creds_path)
