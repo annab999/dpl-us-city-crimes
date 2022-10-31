@@ -5,11 +5,8 @@
 #       --jars </abs/path/to/connector.jar> \
 #       --py-files city_vars.py \
 #       project_file_read.py \
+#           <city_proper> \
 #           <fpath>
-#
-# optional args:
-#           --city=<city> \
-#           --gs=${GCP_GCS_BUCKET}
 
 from pyspark.conf import SparkConf
 from pyspark.context import SparkContext
@@ -28,22 +25,20 @@ from city_vars import dict_cities
 parser = argparse.ArgumentParser(
     description = 'Read CSV file into Spark, divide into years, and write to Parquets.',
     epilog = "Provide optional args only if not available as env vars.")
-parser.add_argument('fpath', help = 'CSV file name and path prefix, e.g. <dir1>/<subdir>/<fname>.<ext>')
-parser.add_argument('--city',
+parser.add_argument('city_proper',
     choices = ['Chicago', 'San Francisco', 'Los Angeles', 'Austin'],
-    help = 'specify 1 of the 4 city templates')
-parser.add_argument('--gs', help = 'GCS bucket URL in gs:// format')
+    help = 'specify 1 of the 4 city for its corresponding template')
+parser.add_argument('fpath', help = 'CSV file name and path prefix (if any), e.g. <dir1>/<subdir>/<fname>.<ext>')
 args = parser.parse_args()
 
-# parsed input
+# parsed inputs
+city_proper = args.city_proper
 fpath = args.fpath
-# env vars or parsed inputs
-city = os.environ.get('city_name', args.city)
-gs_bkt = os.environ.get('gcs_bkt', args.gs)
-creds_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+gs_bkt = os.getenv('GCP_GCS_BUCKET')
+creds_path = os.getenv('SPARK_CREDENTIALS')
 
 # for city-specific data
-dict_city = dict_cities[city]
+dict_city = dict_cities[city_proper]
 
 def parse_dt(dt_str):
     """
@@ -52,8 +47,6 @@ def parse_dt(dt_str):
     return pdl.from_format(dt_str, dict_city['date_format'])
 parse_dt_udf = F.udf(parse_dt, returnType=types.TimestampType())
 
-logging.info('----------------- creds path is' + creds_path)
-print('----------------- creds path is' + creds_path)
 # connect to GCS
 sc = SparkContext(conf=SparkConf())
 hconf = sc._jsc.hadoopConfiguration()
@@ -72,8 +65,10 @@ df_csv = spark.read \
     .csv(f"{gs_bkt}/{fpath}")
 
 ####### CHECKER ############################
-logging.info('----------------- df_csv.head(10) is' + df_csv.head(10))
-logging.info('----------------- df_csv.count() is' + df_csv.count())
+logging.info('----------------- df_csv.count() is' + str(df_csv.count()))
+logging.info('----------------- df_csv.head(10) is')
+for row in df_csv.head(10):
+    logging.info(str(row))
 
 # parse datetime out of provided date column
 df_time = df_csv.withColumn('Timestamp', parse_dt_udf(F.col(dict_city['date_string_col'])))

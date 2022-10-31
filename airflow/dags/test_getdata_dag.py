@@ -43,7 +43,7 @@ with DAG(
     f_cities = [city.replace(' ', '_').lower() for city in cities]
     
     with TaskGroup(group_id = 'files_tg') as tg1:
-            
+
         for city in f_cities:
             parse_link = PythonOperator(
                 task_id = f'parse_link_{city}',
@@ -70,6 +70,7 @@ with DAG(
             printer('\n--------after tg1--------\n')
             
     with TaskGroup(group_id = 'data_tg') as tg2:
+
         for city in f_cities:
             list_fpaths = GCSListObjectsOperator(
                 task_id = f'list_fpaths_{city}',
@@ -79,19 +80,20 @@ with DAG(
                 delimiter = "{{ 'in' | fmt }}"
             )
 
+            args_with_fpaths = list_fpaths.output.map(lambda fpath: [
+                cities[f_cities.index(city)],
+                fpath])
             prepare_data = SparkSubmitOperator \
                 .partial(
                     task_id = f'prepare_data_{city}',
                     application = '{{ include_dir }}/test_file_read.py',
-                    conn_id = 'spark_default',
+                    conn_id = 'project_spark',        # not templated
                     name = f'prepare_data_{city}',
                     py_files = '{{ include_dir }}/city_vars.py',
                     jars = '{{ jar_path }}',
-                    env_vars = {
-                        'city_name': city,
-                        'gcs_bkt': '{{ gs_bkt }}'},
+                    max_active_tis_per_dag = 2,
                     verbose = True) \
-                .expand(application_args = list_fpaths.output)
+                .expand(application_args = args_with_fpaths)
 
             list_fpaths >> prepare_data
             printer('\n--------after spark--------\n')
