@@ -47,8 +47,9 @@ USER spark-user
 COPY requirements.txt .
 RUN mkdir -p "${FILES_HOME}" \
     && source /opt/conda/bin/activate \
-    && pip install --no-cache-dir -r requirements.txt
+    && pip install --no-cache-dir -r requirements.txt \
+    && "${SPARK_HOME}/sbin/start-master.sh" \
+    && "${SPARK_HOME}/sbin/start-worker.sh" spark://localhost:7077
 WORKDIR "${FILES_HOME}"
 
-# CMD [ "${SPARK_HOME}/sbin/start-master.sh" ]
 CMD [ "jupyter", "notebook", "--ip=0.0.0.0", "--no-browser" ]

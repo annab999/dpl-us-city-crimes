@@ -1,4 +1,4 @@
-FROM apache/airflow
+FROM apache/airflow:latest-python3.9
 
 SHELL ["/bin/bash", "-o", "pipefail", "-e", "-u", "-x", "-c"]
 
