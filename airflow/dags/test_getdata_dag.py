@@ -86,7 +86,7 @@ with DAG(
             prepare_data = SparkSubmitOperator \
                 .partial(
                     task_id = f'prepare_data_{city}',
-                    application = '{{ include_dir }}/test_file_read.py',
+                    application = '{{ include_dir }}/project_file_read.py',
                     conn_id = 'project_spark',        # not templated
                     name = f'prepare_data_{city}',
                     py_files = '{{ include_dir }}/city_vars.py',

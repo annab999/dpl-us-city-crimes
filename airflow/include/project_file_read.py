@@ -5,9 +5,8 @@
 #       --jars </abs/path/to/connector.jar> \
 #       --py-files city_vars.py \
 #       project_file_read.py \
-#           <city> \
-#           <fpath> \
-#           $GCP_GCS_BUCKET
+#           <city_proper> \
+#           <fpath>
 
 from pyspark.conf import SparkConf
 from pyspark.context import SparkContext
@@ -18,28 +17,27 @@ from pyspark.sql import functions as F
 import os
 import argparse
 import pendulum as pdl
-import logging
 
 from city_vars import dict_cities
 
 # inputs
-parser = argparse.ArgumentParser(description = 'Read CSV file into Spark, divide into years, and write to Parquets.')
-parser.add_argument('city',
+parser = argparse.ArgumentParser(
+    description = 'Read CSV file into Spark, divide into years, and write to Parquets.',
+    epilog = "Provide optional args only if not available as env vars.")
+parser.add_argument('city_proper',
     choices = ['Chicago', 'San Francisco', 'Los Angeles', 'Austin'],
-    help = 'specify 1 of the 4 city templates',
-    required = True)
-parser.add_argument('gs', help = 'GCS bucket URL in gs:// format', required = True)
-parser.add_argument('fpath', help = 'CSV file name and path prefix, e.g. <dir1>/<subdir>/<fname>.<ext>', required = True)
+    help = 'specify 1 of the 4 city for its corresponding template')
+parser.add_argument('fpath', help = 'CSV file name and path prefix (if any), e.g. <dir1>/<subdir>/<fname>.<ext>')
 args = parser.parse_args()
 
 # parsed inputs
-city = args.city
-gs_bkt = args.gs
+city_proper = args.city_proper
 fpath = args.fpath
+gs_bkt = os.getenv('GCP_GCS_BUCKET')
+creds_path = os.getenv('SPARK_CREDENTIALS')
 
 # for city-specific data
-dict_city = dict_cities[city]
-creds_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+dict_city = dict_cities[city_proper]
 
 def parse_dt(dt_str):
     """
@@ -64,12 +62,6 @@ df_csv = spark.read \
     .option("header", "true") \
     .schema(dict_city['schema_template']) \
     .csv(f"{gs_bkt}/{fpath}")
-
-####### CHECKER ############################
-logging.info('----------------- creds path is' + creds_path)
-print('----------------- creds path is' + creds_path)
-df_csv.head(10)
-df_csv.count()
 
 # parse datetime out of provided date column
 df_time = df_csv.withColumn('Timestamp', parse_dt_udf(F.col(dict_city['date_string_col'])))

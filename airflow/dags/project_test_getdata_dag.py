@@ -13,6 +13,7 @@ from task_functions import parse_py, parse_bash, printer
 
 # proj = os.getenv('GCP_PROJECT_ID')
 # gs_bkt = 'gs://' + proj + '-project'
+a_home = os.getenv('AIRFLOW_HOME')
 def_args = {
     "owner": "airflow",
     "depends_on_past": False,
@@ -24,11 +25,12 @@ with DAG(
     schedule = '@once',
     start_date = pdl.datetime(2022, 10, 1, tz="Asia/Manila"),
     default_args = def_args,
-    template_searchpath = "/opt/airflow/include",
+    template_searchpath = f'{a_home}/include',
     max_active_runs = 2,
     user_defined_macros = {
         'gs_bkt': os.getenv('GCP_GCS_BUCKET'),  # UPDATE ME IN PROD
-        'jar_path': os.getenv('JAR_FILE_LOC')   # try HTTP URL
+        'jar_path': os.getenv('JAR_FILE_LOC'),  # try HTTP URL
+        'include_dir': f'{a_home}/include'
     },
     user_defined_filters = {
         'fmt': (lambda drxn: '.csv' if drxn=='in' else '.parquet'),
@@ -41,7 +43,6 @@ with DAG(
     f_cities = [city.replace(' ', '_').lower() for city in cities]
     
     with TaskGroup(group_id = 'files_tg') as tg1:
-            
         for city in f_cities:
             parse_link = PythonOperator(
                 task_id = f'parse_link_{city}',
@@ -77,19 +78,20 @@ with DAG(
                 delimiter = "{{ 'in' | fmt }}"
             )
 
+            args_with_fpaths = list_fpaths.output.map(lambda fpath: [
+                cities[f_cities.index(city)],
+                fpath])
             prepare_data = SparkSubmitOperator \
                 .partial(
                     task_id = f'prepare_data_{city}',
-                    application = 'project_file_read.py',
-                    conn_id = 'project_spark',
+                    application = '{{ include_dir }}/project_file_read.py',
+                    conn_id = 'project_spark',        # not templated
                     name = f'prepare_data_{city}',
-                    py_files = 'city_vars.py',
+                    py_files = '{{ include_dir }}/city_vars.py',
                     jars = '{{ jar_path }}',
+                    max_active_tis_per_dag = 2,
                     verbose = True) \
-                .expand(application_args = [
-                    city,
-                    '{{ gs_bkt }}',
-                    list_fpaths.output])
+                .expand(application_args = args_with_fpaths)
 
             list_fpaths >> prepare_data
             printer('\n--------after spark--------\n')
