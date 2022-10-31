@@ -8,8 +8,8 @@
 #           <fpath>
 #
 # optional args:
-#           <city> \
-#           $GCP_GCS_BUCKET
+#           --city=<city> \
+#           --gs=${GCP_GCS_BUCKET}
 
 from pyspark.conf import SparkConf
 from pyspark.context import SparkContext
@@ -28,11 +28,11 @@ from city_vars import dict_cities
 parser = argparse.ArgumentParser(
     description = 'Read CSV file into Spark, divide into years, and write to Parquets.',
     epilog = "Provide optional args only if not available as env vars.")
-parser.add_argument('fpath', help = 'CSV file name and path prefix, e.g. <dir1>/<subdir>/<fname>.<ext>', required = True)
-parser.add_argument('city',
+parser.add_argument('fpath', help = 'CSV file name and path prefix, e.g. <dir1>/<subdir>/<fname>.<ext>')
+parser.add_argument('--city',
     choices = ['Chicago', 'San Francisco', 'Los Angeles', 'Austin'],
     help = 'specify 1 of the 4 city templates')
-parser.add_argument('gs', help = 'GCS bucket URL in gs:// format')
+parser.add_argument('--gs', help = 'GCS bucket URL in gs:// format')
 args = parser.parse_args()
 
 # parsed input
@@ -52,6 +52,8 @@ def parse_dt(dt_str):
     return pdl.from_format(dt_str, dict_city['date_format'])
 parse_dt_udf = F.udf(parse_dt, returnType=types.TimestampType())
 
+logging.info('----------------- creds path is' + creds_path)
+print('----------------- creds path is' + creds_path)
 # connect to GCS
 sc = SparkContext(conf=SparkConf())
 hconf = sc._jsc.hadoopConfiguration()
@@ -70,8 +72,6 @@ df_csv = spark.read \
     .csv(f"{gs_bkt}/{fpath}")
 
 ####### CHECKER ############################
-logging.info('----------------- creds path is' + creds_path)
-print('----------------- creds path is' + creds_path)
 logging.info('----------------- df_csv.head(10) is' + df_csv.head(10))
 logging.info('----------------- df_csv.count() is' + df_csv.count())
 
