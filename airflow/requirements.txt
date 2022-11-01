@@ -1,0 +1,5 @@
+pendulum
+pandas
+pyspark
+apache-airflow-providers-apache-spark
+apache-airflow-providers-dbt-cloud

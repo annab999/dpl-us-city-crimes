@@ -2,12 +2,10 @@ FROM apache/airflow:latest-python3.9
 
 SHELL ["/bin/bash", "-o", "pipefail", "-e", "-u", "-x", "-c"]
 
-#COPY requirements.txt .
-#RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 USER root
-RUN apt-get update -qq && apt-get install vim procps -qqq
-# git gcc g++ -qqq
 
 ARG AIRFLOW_USER
 ARG INSTALL_DIR
@@ -20,7 +18,10 @@ ENV GCLOUD_HOME=${INSTALL_DIR}/google-cloud-sdk
 ENV JAVA_HOME=${INSTALL_DIR}/jdk-17.0.2
 ENV PATH="${GCLOUD_HOME}/bin/:${JAVA_HOME}/bin:${PATH}"
 
-RUN JDK_URL=https://download.java.net/java/GA/jdk17.0.2/dfd4a8d0985749f896bed50d7138ee7f/8/GPL/${JDK_FILE} \
+RUN apt-get update && apt-get install -qq vim procps \
+    && apt-get autoremove -qq --purge && apt-get clean \
+    # git gcc g++ -qqq \
+    && JDK_URL=https://download.java.net/java/GA/jdk17.0.2/dfd4a8d0985749f896bed50d7138ee7f/8/GPL/${JDK_FILE} \
     && GCLOUD_URL="https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz" \
     && TMP_DIR="$(mktemp -d)" \
     # install Java
