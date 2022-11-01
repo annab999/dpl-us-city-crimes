@@ -13,7 +13,7 @@ The following are the software (and corresponding versions) used for this projec
 | container | Debian 11 | Python | 3.7.14 | for Airflow |
 | container | Debian 11 | gcloud SDK | 407.0.0 | for Airflow |
 | container | Debian 11 | Postgres | 13.8 | for Airflow |
-| container | Debian 11 | Apache Airflow | 2.4.2 |  |
+| container | Debian 11 | Apache Airflow | 2.4.2 | with CeleryExecutor |
 | container | Debian | Anaconda | 4.12 | for Spark |
 | container | Debian | Python | 3.9.12 | for Spark |
 | container | Debian | OpenJDK | 17.0.2 | for Spark |
@@ -366,8 +366,7 @@ Main thing to note:s
       - before writing
         - 24, 12, 20, 10
 
-- **Resolution**: more experiments, but most especially: read more on optimizations (repartition, coalesce, parallelize, cache)
-
+- **Resolution**: more experiments but most especially, read more on optimizations (repartition, coalesce, parallelize, cache)
 ### [Spark-Airflow] Getting remote spark-submit to work remotely
 Manual trial from Airflow container:
 ```
@@ -375,17 +374,118 @@ $ spark-submit
 /home/airflow/.local/lib/python3.7/site-packages/pyspark/bin/load-spark-env.sh: line 68: ps: command not found
 JAVA_HOME is not set
 ```
-When to start Spark master? Must add py files, path, jar file path to Airflow build
-
 - **Observations**: Turns out that as opposed to instructions online to unpack [Spark tgz](https://spark.apache.org/downloads.html) onto remote Airflow executor, Spark binaries are already in my Airflow containers upon install of `apache-airflow-providers-apache-spark` pip module, and are already callable from `/home/airflow/.local/bin` (already in `PATH`).
 
 - **Resolution**: Need to install `procps` and Spark prerequisite OpenJDK during build of Airflow images
 
-### [Service] Template
+### [Docker] ENV step in Dockerfile not resolving bash command output
+In an effort to remove hardcoding of `py4j` lib file in the Spark Dockerfile, I set the following code for updating `PYTHONPATH` env var:
+```
+ENV PYTHONPATH="${SPARK_HOME}/python/lib/$(ls ${SPARK_HOME}/python/lib/ | grep py4j):${SPARK_HOME}/python:${PYTHONPATH}"
+```
+However, env var resolution within the container is:
+```
+$ echo $PYTHONPATH
+/opt/spark-3.3.1-bin-hadoop3/python/lib/$(ls /opt/spark-3.3.1-bin-hadoop3/python/lib/ | grep py4j):/opt/spark-3.3.1-bin-hadoop3/python:
+```
+- **Observations**: Can't just isolate the bash command and save its output to an `ARG`, nor does it seem improper to save the output string as another `ENV`. Tried checking for the proper syntax in `ENV` or an implementation via `RUN`, but found https://github.com/moby/moby/issues/29110 (still open).
 
-- **Observations**: Stuff
+- **Resolution**: Revert to hardcoded `"${SPARK_HOME}/python/lib/py4j-0.10.9.5-src.zip:${SPARK_HOME}/python:${PYTHONPATH}"` and wait for feature to be implemented
 
-- **Resolution**: Stuff
+### [Airflow] SparkSubmitOperator parsing of master URL from Spark Connection is very weird
+When I set `AIRFLOW_CONN_PROJECT_SPARK=spark://project-spark-1:7077`, output is:
+```
+[2022-10-30, 15:32:11 UTC] {spark_submit.py:334} INFO - Spark-Submit cmd: spark-submit --master project-spark-1:7077 --py-files city_vars.py --jars https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar --name prepare_data_austin --verbose test_file_read.py ...
+...
+[2022-10-30, 15:32:42 UTC] {spark_submit.py:485} INFO - Parsed arguments:
+[2022-10-30, 15:32:42 UTC] {spark_submit.py:485} INFO - master                  project-spark-1:7077
+```
+Or when I set `AIRFLOW_CONN_PROJECT_SPARK=spark://spark://project-spark-1:7077`, output is:
+```
+[2022-10-31, 08:50:40 UTC] {spark_submit.py:334} INFO - Spark-Submit cmd: spark-submit --master spark --py-files /opt/***/include/city_vars.py --jars https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar --name prepare_data_austin --verbose /opt/***/include/test_file_read.py ...
+...
+[2022-10-31, 08:50:46 UTC] {spark_submit.py:485} INFO - Parsed arguments:
+[2022-10-31, 08:50:46 UTC] {spark_submit.py:485} INFO - master                  spark
+```
+But when I create the connection via GUI and set the `host` field value to be `spark://project-spark-1`, output is desired:
+```
+[2022-10-30, 18:58:18 UTC] {spark_submit.py:334} INFO - Spark-Submit cmd: spark-submit --master spark://project-spark-1:7077 --py-files city_vars.py --jars https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar --name prepare_data_austin --verbose test_file_read.py ...
+...
+[2022-10-30, 18:58:29 UTC] {spark_submit.py:485} INFO - Parsed arguments:
+[2022-10-30, 18:58:29 UTC] {spark_submit.py:485} INFO - master                  spark://project-spark-1:7077
+```
+- **Observations**: Seems this is the [source code](https://github.com/apache/airflow/blob/dcdcf3a2b8054fa727efb4cd79d38d2c9c7e1bd5/airflow/models/connection.py#L58) for parsing from a URI connection:
+  ```
+  def _parse_netloc_to_hostname(uri_parts):
+    """Parse a URI string to get correct Hostname."""
+    hostname = unquote(uri_parts.hostname or '')
+    if '/' in hostname:
+      hostname = uri_parts.netloc
+      if "@" in hostname:
+        hostname = hostname.rsplit("@", 1)[1]                 # remember this for later
+      if ":" in hostname:
+        hostname = hostname.split(":", 1)[0]                  # this is where the sorcery happens
+      hostname = unquote(hostname)
+    return hostname
+  ```
+  while below is the [source code](https://github.com/apache/airflow/blob/dcdcf3a2b8054fa727efb4cd79d38d2c9c7e1bd5/airflow/models/connection.py#L129) for a GUI connection, which explains why the GUI-registered connection turns out fine:
+  ```
+  if uri:
+    self._parse_from_uri(uri)                 # which leads to the above function
+  else:
+    self.conn_type = conn_type
+    self.host = host                          # this gives the correct master URL
+    ...
+  ```
+  And yet `spark-submit` requires the `spark://` prefix (among other possible prefixes) for it to work. In the 1st scenario above, which I would like to note is exactly how it is formatted in [the docs](https://airflow.apache.org/docs/apache-airflow-providers-apache-spark/stable/connections/spark.html#howto-connection-spark), following is the error:
+  ```
+  [2022-10-30, 15:32:42 UTC] {spark_submit.py:485} INFO - Exception in thread "main" org.apache.spark.SparkException: Master must either be yarn or start with spark, mesos, k8s, or local
+  [2022-10-30, 15:32:42 UTC] {spark_submit.py:485} INFO - at org.apache.spark.deploy.SparkSubmit.error(SparkSubmit.scala:975)
+  [2022-10-30, 15:32:42 UTC] {spark_submit.py:485} INFO - at org.apache.spark.deploy.SparkSubmit.prepareSubmitEnvironment(SparkSubmit.scala:238)
+  ...
+  [2022-10-30, 15:32:43 UTC] {taskinstance.py:1851} ERROR - Task failed with exception
+  Traceback (most recent call last):
+    File "/home/airflow/.local/lib/python3.7/site-packages/airflow/providers/apache/spark/operators/spark_submit.py", line 157, in execute
+      self._hook.submit(self._application)
+    File "/home/airflow/.local/lib/python3.7/site-packages/airflow/providers/apache/spark/hooks/spark_submit.py", line 417, in submit
+      f"Cannot execute: {self._mask_cmd(spark_submit_cmd)}. Error code is: {returncode}."
+  airflow.exceptions.AirflowException: Cannot execute: spark-submit --master project-spark-1:7077 --py-files city_vars.py --jars https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar --name prepare_data_austin --verbose test_file_read.py ...
+  ```
+  (Same effect when I set it up as `AIRFLOW_CONN_SPARK_DEFAULT`, and when I set `deploy-mode=cluster`.) But from the source code, it seems to parse out this same prefix, when connection is registered in URI format.
+
+  Tried running this in preparation for just passing it as an `ENTRYPOINT` to the containers:
+  ```
+  $ airflow connections add t_spark --conn-json '{"conn_type":"spark","host":"spark://project-spark-1","port": 7077}'
+  /home/airflow/.local/lib/python3.7/site-packages/airflow/configuration.py:367: FutureWarning: ...
+  Successfully added `conn_id`=t_spark : spark://:@spark://project-spark-1:7077
+  ```
+  That inserted `@` is weird and familiar (see 1st observed code snippet above). Now, the output is *correct* ?!???!:
+  ```
+  [2022-10-31, 13:26:50 UTC] {spark_submit.py:334} INFO - Spark-Submit cmd: spark-submit --master spark://project-spark-1:7077 --py-files /opt/***/include/city_vars.py --jars https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar --name prepare_data_austin --verbose /opt/***/include/test_file_read.py austin {{ gs_bkt }} raw/austin/2016_Annual_Crime_Data.csv
+  [2022-10-31, 13:27:20 UTC] {spark_submit.py:485} INFO - Using properties file: null
+  [2022-10-31, 13:27:22 UTC] {spark_submit.py:485} INFO - Parsed arguments:
+  [2022-10-31, 13:27:22 UTC] {spark_submit.py:485} INFO - master                  spark://project-spark-1:7077
+  ```
+  Tried to apply that hidden pre-parsing step by SparkSubmitOperator for non-URI connections, as a *workaround* on my URI env var `AIRFLOW_CONN_PROJECT_SPARK: 'spark://:@spark://${SPARK_HOSTNAME}:7077'`, however, still parsed the master URL as just `spark` (same as 2nd error output above). Looking back at the code snippet in question, seems it parses the string before the `:` character even *after* parsing with the `@` involved (maybe `if ":" in hostname:` should be an `elif`?)
+- **(Ironic) Resolution**: Use a JSON input (instead of URI) to the env var, which is **exactly what I've been avoiding** the whole time as [the docs recommended a URI syntax](https://airflow.apache.org/docs/apache-airflow-providers-apache-spark/stable/connections/spark.html#howto-connection-spark))
+
+### [Airflow] Jinja var apparently not resolving in expanded SparkSubmitOperator `application_args`
+My code was:
+```
+args_with_fpaths = list_fpaths.output.map(lambda fpath: [
+    cities[f_cities.index(city)],
+    {{ gs_bkt }}
+    fpath])
+prepare_data = SparkSubmitOperator \
+  .partial(
+    task_id = f'prepare_data_{city}',
+...
+    verbose = True) \
+  .expand(application_args = args_with_fpaths)
+```
+- **Observations**: Worked with 
+
+- **Resolution**: Move var out of `application_args` and call from within Py script
 
 ## TODOs:
 - dag running per year but parsing is lahat
@@ -408,16 +508,17 @@ When to start Spark master? Must add py files, path, jar file path to Airflow bu
 - remove DEBUG logging, example dags
 - upgrade version
   - airflow gcloud 406
+- when to ${SPARK_HOME}/sbin/stop-master.sh
 
 ### File sizes for reference
 ```
-PS C:\Users\Joanna> gcloud storage ls --long --readable-sizes gs://test_data_lake_denzoom/raw/austin/
+PS> gcloud storage ls --long --readable-sizes gs://test_data_lake_denzoom/raw/austin/
    7.22MiB  2022-10-24T18:42:49Z  gs://test_data_lake_denzoom/raw/austin/2016_Annual_Crime_Data.csv
    6.75MiB  2022-10-24T18:43:50Z  gs://test_data_lake_denzoom/raw/austin/2017_Annual_Crime.csv
    3.91MiB  2022-10-24T18:43:53Z  gs://test_data_lake_denzoom/raw/austin/2018_Annual_Crime.csv
    7.52MiB  2022-10-24T18:42:57Z  gs://test_data_lake_denzoom/raw/austin/Annual_Crime_Dataset_2015.csv
 TOTAL: 4 objects, 26640531 bytes (25.41MiB)
-PS C:\Users\Joanna> gcloud storage ls --long --readable-sizes gs://test_data_lake_denzoom/raw/chicago/
+PS> gcloud storage ls --long --readable-sizes gs://test_data_lake_denzoom/raw/chicago/
   89.26MiB  2022-10-24T18:42:27Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2001.csv
   90.34MiB  2022-10-24T18:42:36Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2002.csv
   89.83MiB  2022-10-24T18:43:56Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2003.csv
@@ -441,11 +542,11 @@ PS C:\Users\Joanna> gcloud storage ls --long --readable-sizes gs://test_data_lak
   47.42MiB  2022-10-24T18:51:19Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2021.csv
   41.85MiB  2022-10-24T18:51:48Z  gs://test_data_lake_denzoom/raw/chicago/Crimes_-_2022.csv
 TOTAL: 22 objects, 1629339498 bytes (1.52GiB)
-PS C:\Users\Joanna> gcloud storage ls --long --readable-sizes gs://test_data_lake_denzoom/raw/san_francisco/
+PS> gcloud storage ls --long --readable-sizes gs://test_data_lake_denzoom/raw/san_francisco/
  227.24MiB  2022-10-24T18:43:24Z  gs://test_data_lake_denzoom/raw/san_francisco/Police_Department_Incident_Reports_2018_to_Present.csv
  525.42MiB  2022-10-24T18:51:54Z  gs://test_data_lake_denzoom/raw/san_francisco/Police_Department_Incident_Reports_Historical_2003_to_May_2018.csv
 TOTAL: 2 objects, 789224651 bytes (752.66MiB)
-PS C:\Users\Joanna> gcloud storage ls --long --readable-sizes gs://test_data_lake_denzoom/raw/los_angeles/
+PS> gcloud storage ls --long --readable-sizes gs://test_data_lake_denzoom/raw/los_angeles/
  511.52MiB  2022-10-24T18:45:25Z  gs://test_data_lake_denzoom/raw/los_angeles/Crime_Data_from_2010_to_2019.csv
  142.99MiB  2022-10-24T18:43:15Z  gs://test_data_lake_denzoom/raw/los_angeles/Crime_Data_from_2020_to_Present.csv
 TOTAL: 2 objects, 686299110 bytes (654.51MiB
