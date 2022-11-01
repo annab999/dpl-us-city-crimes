@@ -487,6 +487,12 @@ prepare_data = SparkSubmitOperator \
 
 - **Resolution**: Move var out of `application_args` and call from within Py script
 
+### [Service] Template
+
+- **Observations**: Stuff
+
+- **Resolution**: Stuff
+
 ## TODOs:
 - dag running per year but parsing is lahat
 - try: ti.xcom in `map()` func
