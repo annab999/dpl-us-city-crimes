@@ -42,8 +42,8 @@ with DAG(
     cities = ['Chicago', 'San Francisco', 'Los Angeles', 'Austin']
     f_cities = [city.replace(' ', '_').lower() for city in cities]
     
-    for city in f_cities:
-        with TaskGroup(group_id = 'files_tg') as tg1:
+    with TaskGroup(group_id = 'files_tg') as tg1:
+        for city in f_cities:
             parse_link = PythonOperator(
                 task_id = f'parse_link_{city}',
                 python_callable = parse_py,
@@ -67,7 +67,8 @@ with DAG(
 
             parse_link >> down_up
             
-        with TaskGroup(group_id = 'data_tg') as tg2:
+    with TaskGroup(group_id = 'data_tg') as tg2:
+        for city in f_cities:
             list_fpaths = GCSListObjectsOperator(
                 task_id = f'list_fpaths_{city}',
                 bucket = '{{ gs_bkt | no_gs }}',  # UPDATE ME IN PROD

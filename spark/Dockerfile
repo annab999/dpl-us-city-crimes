@@ -18,6 +18,7 @@ ENV JAVA_HOME=${INSTALL_DIR}/jdk-17.0.2
 ENV SPARK_HOME=${INSTALL_DIR}/${SPARK_VERSION}
 ENV FILES_HOME=${FILES_DIR}
 ENV JAR_FILE_LOC=${JAR_LOC}/${JAR_FILE}
+ENV SPARK_MASTER_HOSTNAME ${MASTER_HOSTNAME}
 
 WORKDIR ${INSTALL_DIR}
 
@@ -49,6 +50,6 @@ RUN mkdir -p "${FILES_HOME}" \
     && pip install --no-cache-dir -r requirements.txt
 WORKDIR "${FILES_HOME}"
 
-CMD "${SPARK_HOME}/sbin/start-master.sh" -h ${MASTER_HOSTNAME} \
-    && "${SPARK_HOME}/sbin/start-worker.sh" spark://${MASTER_HOSTNAME}:7077 \
+CMD "${SPARK_HOME}/sbin/start-master.sh" -h ${SPARK_MASTER_HOSTNAME} \
+    && "${SPARK_HOME}/sbin/start-worker.sh" spark://${SPARK_MASTER_HOSTNAME}:7077 \
     && jupyter notebook --ip=0.0.0.0 --no-browser
