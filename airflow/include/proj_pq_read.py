@@ -9,7 +9,6 @@
 from pyspark.conf import SparkConf
 from pyspark.context import SparkContext
 from pyspark.sql import SparkSession
-from pyspark.sql import types
 from pyspark.sql import functions as F
 
 import os
@@ -54,13 +53,12 @@ spark = SparkSession.builder \
 
 df_pq = spark.read \
     .option("header", "true") \
-    .parquet(f'{gs_bkt}/pq/from_raw/{dict_city['formatted']}/{year}/{month}')
+    .parquet(f"{gs_bkt}/pq/from_raw/{dict_city['formatted']}/{year}/{month}")
 
 # filter out duplicates
 # filter out rows with null values in important columns
 df_clean = df_pq \
-    .distinct() \
-    .filter(F.col(dict_city['date_string_col']).isNotNull())
+    .distinct()
 
 parser_udf = F.udf(dict_city['parser'], returnType=dict_cities['p_ret_type'])
 
