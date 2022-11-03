@@ -20,15 +20,12 @@ from city_vars import dict_cities
 
 # inputs
 parser = argparse.ArgumentParser(description = 'Read CSV file into Spark, divide into years, add standard timestamps, and write to Parquets.')
-parser.add_argument('city_proper',
-    choices = ['Chicago', 'San Francisco', 'Los Angeles', 'Austin'],
-    help = 'specify 1 of the 4 cities for its corresponding template')
 parser.add_argument('fpath', help = 'CSV file name and path prefix (if any), e.g. <dir1>/<subdir>/<fname>.<ext>')
 args = parser.parse_args()
 
 # parsed inputs
-city_proper = args.city_proper
 fpath = args.fpath
+city_proper = os.getenv('CITY_PROPER')
 gs_bkt = os.getenv('GCP_GCS_BUCKET')
 creds_path = os.getenv('SPARK_CREDENTIALS')
 

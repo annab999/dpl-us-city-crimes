@@ -77,9 +77,7 @@ with DAG(
                 delimiter = "{{ 'in' | fmt }}"
             )
 
-            args_with_fpaths = list_fpaths.output.map(lambda fpath: [
-                cities[f_cities.index(city)],
-                fpath])
+            args_with_fpaths = list_fpaths.output.map(lambda fpath: [fpath])
             parquetize_data = SparkSubmitOperator \
                 .partial(
                     task_id = f'parquetize_data_{city}',
@@ -88,7 +86,12 @@ with DAG(
                     name = f'parquetize_data_{city}',
                     py_files = '{{ include_dir }}/city_vars.py',
                     jars = '{{ jar_path }}',
-                    max_active_tis_per_dag = 2,
+                    driver_memory = '5G',
+                    executor_memory = '3G',
+                    max_active_tis_per_dag = 1,
+                    env_vars = {
+                        'CITY_PROPER': cities[f_cities.index(city)]
+                    },
                     verbose = True) \
                 .expand(application_args = args_with_fpaths)
 
