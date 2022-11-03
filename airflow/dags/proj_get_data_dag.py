@@ -1,6 +1,3 @@
-import pendulum as pdl
-import os
-
 from airflow import DAG
 from airflow.utils.task_group import TaskGroup
 from airflow.operators.bash import BashOperator
@@ -9,7 +6,10 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
 from airflow.providers.google.cloud.operators.gcs import GCSListObjectsOperator
 
-from task_functions import parse_py, parse_bash, printer
+import pendulum as pdl
+import os
+
+from task_functions import parse_py, parse_bash
 
 # proj = os.getenv('GCP_PROJECT_ID')
 # gs_bkt = 'gs://' + proj + '-project'
@@ -21,7 +21,7 @@ def_args = {
 }
 
 with DAG(
-    dag_id = "test_getdata_dag",
+    dag_id = "proj_get_data_dag",
     schedule = '@once',
     start_date = pdl.datetime(2022, 10, 1, tz="Asia/Manila"),
     default_args = def_args,
@@ -29,7 +29,7 @@ with DAG(
     max_active_runs = 2,
     user_defined_macros = {
         'gs_bkt': os.getenv('GCP_GCS_BUCKET'),  # UPDATE ME IN PROD
-        'jar_path': os.getenv('JAR_FILE_LOC'),  # try HTTP URL
+        'jar_path': os.getenv('JAR_FILE_LOC'),
         'include_dir': f'{a_home}/include'
     },
     user_defined_filters = {
@@ -39,12 +39,11 @@ with DAG(
     tags = ['project', 'TEST']
 ) as dag:
 
-    cities = ['Austin']
+    cities = ['Chicago', 'San Francisco', 'Los Angeles', 'Austin']
     f_cities = [city.replace(' ', '_').lower() for city in cities]
     
-    with TaskGroup(group_id = 'files_tg') as tg1:
-
-        for city in f_cities:
+    for city in f_cities:
+        with TaskGroup(group_id = 'files_tg') as tg1:
             parse_link = PythonOperator(
                 task_id = f'parse_link_{city}',
                 python_callable = parse_py,
@@ -67,11 +66,8 @@ with DAG(
                 .expand(bash_command = curls)
 
             parse_link >> down_up
-            printer('\n--------after tg1--------\n')
             
-    with TaskGroup(group_id = 'data_tg') as tg2:
-
-        for city in f_cities:
+        with TaskGroup(group_id = 'data_tg') as tg2:
             list_fpaths = GCSListObjectsOperator(
                 task_id = f'list_fpaths_{city}',
                 bucket = '{{ gs_bkt | no_gs }}',  # UPDATE ME IN PROD
@@ -83,20 +79,18 @@ with DAG(
             args_with_fpaths = list_fpaths.output.map(lambda fpath: [
                 cities[f_cities.index(city)],
                 fpath])
-            prepare_data = SparkSubmitOperator \
+            parquetize_data = SparkSubmitOperator \
                 .partial(
-                    task_id = f'prepare_data_{city}',
-                    application = '{{ include_dir }}/project_file_read.py',
+                    task_id = f'parquetize_data_{city}',
+                    application = '{{ include_dir }}/proj_csv_read.py',
                     conn_id = 'project_spark',        # not templated
-                    name = f'prepare_data_{city}',
+                    name = f'parquetize_data_{city}',
                     py_files = '{{ include_dir }}/city_vars.py',
                     jars = '{{ jar_path }}',
                     max_active_tis_per_dag = 2,
                     verbose = True) \
                 .expand(application_args = args_with_fpaths)
 
-            list_fpaths >> prepare_data
-            printer('\n--------after spark--------\n')
+            list_fpaths >> parquetize_data
 
     tg1 >> tg2
-    printer('\n--------dag done--------\n')

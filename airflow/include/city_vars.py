@@ -5,11 +5,35 @@ from pyspark.sql import types
 cities = ['Chicago', 'San Francisco', 'Los Angeles', 'Austin']
 f_cities = [c.replace(' ', '_').lower() for c in cities]
 
-# modified pattern from pandas schema
+# parse unclean column for analysis
+def parse_chi(block):
+    """
+    parse street from Chicago given block of format 'NNNXX D STREET ST ..'
+    """
+    split = block.split()
+    street = split[2]
+    for part in split[3:]:
+        street += f' {part}'
+    return street
+def parse_san():
+    """
+    parse  from San Francisco given
+    """
+    pass
+def parse_los():
+    """
+    parse  from Los Angeles given
+    """
+    pass
+def parse_aus():
+    """
+    parse  from Austin given
+    """
+    pass
 
 dict_chicago = {
     'formatted': f_cities[0],
-    'schema_template': types.StructType([
+    'schema_template': types.StructType([               # modified pattern from pandas schema
         types.StructField('Case Number', types.StringType(), True),
         types.StructField('Date', types.StringType(), True),
         types.StructField('Block', types.StringType(), True),
@@ -32,7 +56,12 @@ dict_chicago = {
     'date_format': 'MM/DD/YYYY hh:mm:ss A',
     'date_string_col': 'Date',
     'with_year_col': True,
-    'partitions': 1
+    'partitions': 1,
+    'selected_cols': ['case_number', 'timestamp', 'city', 'street', 'primary_type', 'description', 'location_description', 'arrest', 'domestic', 'beat', 'latitude', 'longitude'],
+    'parser': parse_chi,
+    'p_ret_type': types.StringType(),
+    'p_orig_col': 'block',
+    'p_new_col': 'street'
 }
 
 dict_san_francisco = {
@@ -77,7 +106,12 @@ dict_san_francisco = {
     'date_format': 'MM/DD/YYYY',
     'date_string_col': 'Date',
     'with_year_col': False,
-    'partitions': 12
+    'partitions': 12,
+    'selected_cols': ,
+    'parser': parse_san,
+    'p_ret_type': types.StringType(),
+    'p_orig_col': '',
+    'p_new_col': ''
 }
 
 dict_los_angeles = {
@@ -115,7 +149,12 @@ dict_los_angeles = {
     'date_format': 'MM/DD/YYYY hh:mm:ss A',
     'date_string_col': 'DATE OCC',
     'with_year_col': False,
-    'partitions': 24
+    'partitions': 24,
+    'selected_cols': ,
+    'parser': parse_los,
+    'p_ret_type': types.StringType(),
+    'p_orig_col': '',
+    'p_new_col': ''
 }
 
 dict_austin = {
@@ -138,7 +177,12 @@ dict_austin = {
     'date_format': 'D-MMM-YY',
     'date_string_col': 'GO Report Date',
     'with_year_col': False,
-    'partitions': 1
+    'partitions': 1,
+    'selected_cols': ,
+    'parser': parse_aus,
+    'p_ret_type': types.StringType(),
+    'p_orig_col': '',
+    'p_new_col': ''
 }
 
 dict_cities = {

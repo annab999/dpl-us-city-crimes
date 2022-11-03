@@ -469,24 +469,6 @@ But when I create the connection via GUI and set the `host` field value to be `s
   Tried to apply that hidden pre-parsing step by SparkSubmitOperator for non-URI connections, as a *workaround* on my URI env var `AIRFLOW_CONN_PROJECT_SPARK: 'spark://:@spark://${SPARK_HOSTNAME}:7077'`, however, still parsed the master URL as just `spark` (same as 2nd error output above). Looking back at the code snippet in question, seems it parses the string before the `:` character even *after* parsing with the `@` involved (maybe `if ":" in hostname:` should be an `elif`?)
 - **(Ironic) Resolution**: Use a JSON input (instead of URI) to the env var, which is **exactly what I've been avoiding** the whole time as [the docs recommended a URI syntax](https://airflow.apache.org/docs/apache-airflow-providers-apache-spark/stable/connections/spark.html#howto-connection-spark))
 
-### [Airflow] Jinja var apparently not resolving in expanded SparkSubmitOperator `application_args`
-My code was:
-```
-args_with_fpaths = list_fpaths.output.map(lambda fpath: [
-    cities[f_cities.index(city)],
-    {{ gs_bkt }}
-    fpath])
-prepare_data = SparkSubmitOperator \
-  .partial(
-    task_id = f'prepare_data_{city}',
-...
-    verbose = True) \
-  .expand(application_args = args_with_fpaths)
-```
-- **Observations**: Worked with 
-
-- **Resolution**: Move var out of `application_args` and call from within Py script
-
 ### [Service] Template
 
 - **Observations**: Stuff
@@ -508,6 +490,8 @@ prepare_data = SparkSubmitOperator \
 - try spark submit in cluster mode
 - try user defined macros for curls func, templates_dict for pythonop
 - use task decorators
+- https://stackoverflow.com/questions/7194939/git-change-one-line-in-file-for-the-complete-history
+- slim-airflow branch - next step: separate ROOT and AIRFLOW_USER installs (apt-get, pip)
 
 ### Before running prod
 - update airflow .env bucket
