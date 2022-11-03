@@ -55,12 +55,16 @@ df_csv = spark.read \
 # parse datetime from provided date column of specific format
 p_func = lambda s: pdl.from_format(s, dict_city['date_format'])
 parse_dt_udf = F.udf(p_func, returnType=types.TimestampType())
-df_time = df_csv.withColumn('Timestamp', parse_dt_udf(F.col(dict_city['date_string_col'])))
+df_time = df_csv \
+    .filter(F.col(dict_city['date_string_col']).isNotNull()) \
+    .withColumn('Timestamp', parse_dt_udf(F.col(dict_city['date_string_col']))) \
+    .drop(dict_city['date_string_col'])
 
 # parse year list
 if dict_city['with_year_col']:
     years_rows = df_time \
         .select('Year')
+    df_time.drop('Year')
 else:
     years_rows = df_time \
         .select(F.year('Timestamp').alias('Year'))

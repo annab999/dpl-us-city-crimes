@@ -21,6 +21,13 @@ The following are the software (and corresponding versions) used for this projec
 | cloud | - | BigQuery |  | managed |
 | cloud | - | dbt |  | managed |
 
+## Instructions:
+1. Clone this repo. Only files from this (`project`) folder will be used.
+2. Set up your GCP (trial) account.
+3. Set up service accounts and JSON keys for the following:
+ - 
+4. Edit [.env](./.env) with you GCP details and key locations.
+
 ## Development Issues
 Here are the issues I encountered in setting up the project.
 
@@ -481,7 +488,7 @@ But when I create the connection via GUI and set the `host` field value to be `s
 - `curls = parse_link.output.map(parse_bash)`
 - `curls.value[item]`
 - set up smooth error handling in webscraping script if no more remaining results to scrape from page
-- remove duplicates in records
+- spark-jupyter: need to apply #docker-permissions-error-during-jupyter-startup-in-spark-container everytime new file is placed in `$FILES_HOME`
 - read pq, set up cols, add col for each type, union all, sql queries (groupby loc, date/mon, type; sums and avgs), write report
 - NTS: always check for NULL values, duplicates before processing
 - strip whitespace from austin 'Highest NIBRS/UCR Offense Description', 'GO Location'
