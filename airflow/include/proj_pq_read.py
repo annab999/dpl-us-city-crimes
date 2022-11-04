@@ -18,18 +18,18 @@ import pandas as pd
 from city_vars import dict_cities
 
 # inputs
-parser = argparse.ArgumentParser(description = 'Read semi-raw Parquets, clean and choose columns, combine cities per month.')
+parser = argparse.ArgumentParser(description = 'Read monthly Parquets, clean and choose columns, combine cities per month.')
 parser.add_argument('city_proper',
     choices = ['Chicago', 'San Francisco', 'Los Angeles', 'Austin'],
     help = 'specify 1 of the 4 cities for its corresponding template')
 parser.add_argument('year', help = 'year of data to use')
-parser.add_argument('month', help = 'month of data to use')
+parser.add_argument('zmonth', help = 'zero-padded month of data to use')
 args = parser.parse_args()
 
 # parsed inputs
 city_proper = args.city_proper
 year = args.year
-month = args.month
+zmonth = args.zmonth
 gs_bkt = os.getenv('GCP_GCS_BUCKET')
 creds_path = os.getenv('SPARK_CREDENTIALS')
 
@@ -48,22 +48,17 @@ spark = SparkSession.builder \
     .config(conf=sc.getConf()) \
     .getOrCreate()
 
-df_pq = spark.read \
-    .option("header", "true") \
-    .parquet(f"{gs_bkt}/pq/from_raw/{dict_city['formatted']}/{year}/{month}")
-
-# filter out duplicates
-# filter out rows with null values in important columns
-df_clean = df_pq \
-    .distinct()
+df_pq = spark.read.parquet(f"{gs_bkt}/pq/from_raw/{dict_city['formatted']}/{year}/{zmonth}")
 
 parser_udf = F.udf(dict_city['parser'], returnType=dict_cities['p_ret_type'])
 
-# set up street column
+# filter out duplicates
+# parse some columns
 # pick out important columns
-df_select = df_clean \
+df_select = df_pq \
+    .distinct() \
     .select(dict_city['selected_cols']) \
     .withColumn(dict_city['p_new_col'], parser_udf(dict_city['p_orig_col'])) \
     .withColumn('city', F.lit(city_proper))
 
-df_select.write.parquet(f'{gs_bkt}/pq/clean/{dict_cities['formatted']}/{year}/{month}/', mode='overwrite')
+df_select.write.parquet(f'{gs_bkt}/pq/clean/{dict_cities['formatted']}/{year}/{zmonth}/', mode='overwrite')

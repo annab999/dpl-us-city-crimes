@@ -47,12 +47,14 @@ spark = SparkSession.builder \
     .config(conf=sc.getConf()) \
     .getOrCreate()
 
-df_csv = spark.read.parquet(f'{gs_bkt}/{in_path}')
+df_in = spark.read.parquet(f'{gs_bkt}/{in_path}/*')
 
+# filter out rows with null values in important columns
 # parse datetime from provided date column of specific format
 p_func = lambda s: pdl.from_format(s, dict_city['date_format'])
 parse_dt_udf = F.udf(p_func, returnType=types.TimestampType())
-df_time = df_csv \
+
+df_time = df_in \
     .filter(F.col(dict_city['date_string_col']).isNotNull()) \
     .withColumn('Timestamp', parse_dt_udf(F.col(dict_city['date_string_col']))) \
     .drop(dict_city['date_string_col'])
@@ -81,7 +83,7 @@ for year in years:
         df_month = df.filter(F.month('Timestamp') == month)
         for i in range(len(o_cols)):
             df_month = df_month.withColumnRenamed(o_cols[i], cols[i])
-        if dict_city['partitions'] > 1:
-            df_month = df_month.repartition(dict_city['partitions'])
+        # if dict_city['pq_parts'] > 1:
+        #     df_month = df_month.repartition(dict_city['pq_parts'])
         df_month.write \
             .parquet(f"{gs_bkt}/pq/from_raw/{dict_city['formatted']}/{year}/{month:02}", mode='overwrite')
