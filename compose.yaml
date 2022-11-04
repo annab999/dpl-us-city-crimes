@@ -138,6 +138,11 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
+    ports:
+      - "4041:4040"
+      - "4042:4041"
+      - "4043:4042"
+      - "4044:4043"
     environment:
       <<: [ *airflow-common-env, *project-common-env ]
       # Required to handle warm shutdown of the celery workers properly
