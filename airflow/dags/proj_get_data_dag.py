@@ -89,32 +89,29 @@ with DAG(
                     max_active_tis_per_dag = 1,
                     env_vars = {
                         'CITY_PROPER': cities[f_cities.index(city)],
-                        'IN_FMT': "{{ 'in' | fmt }}",
-                        'OUT_FMT': "{{ 'out' | fmt }}"
+                        'IN_FMT': "{{ 'in' | fmt }}"
                     },
                     verbose = True) \
                 .expand(application_args = args_with_fpaths)
 
-#            clean_data = SparkSubmitOperator \
-#                .partial(
-#                    task_id = f'clean_data_{city}',
-#                    application = '{{ include_dir }}/proj_pq_read.py',
-#                    conn_id = 'project_spark',        # not templated
-#                    name = '{{ task.task_id }}',
-#                    py_files = '{{ include_dir }}/city_vars.py',
-#                    jars = '{{ jar_path }}',
-#                    driver_memory = '5G',
-#                    executor_memory = '3G',
-#                    max_active_tis_per_dag = 1,
-#                    env_vars = {
-#                        'CITY_PROPER': cities[f_cities.index(city)],
-#                        'IN_FMT': "{{ 'in' | fmt }}",
-#                        'OUT_FMT': "{{ 'out' | fmt }}"
-#                    },
-#                    verbose = True) \
-#                .expand(application_args = args_with_fpaths)
+            clean_data = SparkSubmitOperator \
+                .partial(
+                    task_id = f'clean_data_{city}',
+                    application = '{{ include_dir }}/proj_pq_read.py',
+                    conn_id = 'project_spark',        # not templated
+                    name = '{{ task.task_id }}',
+                    py_files = '{{ include_dir }}/city_vars.py',
+                    jars = '{{ jar_path }}',
+                    driver_memory = '5G',
+                    executor_memory = '3G',
+                    max_active_tis_per_dag = 1,
+                    env_vars = {
+                        'CITY_PROPER': cities[f_cities.index(city)],
+                        'IN_FMT': "{{ 'in' | fmt }}"
+                    },
+                    verbose = True) \
+                .expand(application_args = args_with_fpaths)
 
-#            list_fpaths >> parquetize_data >> clean_data
-            list_fpaths >> parquetize_data
+            list_fpaths >> parquetize_data >> clean_data
 
     tg1 >> tg2

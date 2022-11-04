@@ -19,15 +19,18 @@ import pendulum as pdl
 from city_vars import dict_cities
 
 # inputs
-parser = argparse.ArgumentParser(description = 'Read CSV file into Spark, divide into years, add standard timestamps, and write to Parquets.')
-parser.add_argument('fpath', help = 'CSV file name and path prefix (if any), e.g. <dir1>/<subdir>/<fname>.<ext>')
+parser = argparse.ArgumentParser(description = 'Read Parquet file into Spark, clean rows, add standard timestamps, divide into months.')
+parser.add_argument('csv_fpath', help = 'CSV file name and path prefix (if any), e.g. <dir1>/<subdir>/<fname>.<ext>')
+parser.add_argument('pq_dir', help = 'Parquet path prefix replacing old prefix in csv_fpath')
 args = parser.parse_args()
 
 # parsed inputs
-fpath = args.fpath
+csv_fpath = args.csv_fpath
+pq_dir = args.pq_dir
 city_proper = os.getenv('CITY_PROPER')
 gs_bkt = os.getenv('GCP_GCS_BUCKET')
 creds_path = os.getenv('SPARK_CREDENTIALS')
+in_path = csv_fpath.replace('raw/', pq_dir).replace(os.getenv('IN_FMT'), '')
 
 # for city-specific data
 dict_city = dict_cities[city_proper]
@@ -44,10 +47,7 @@ spark = SparkSession.builder \
     .config(conf=sc.getConf()) \
     .getOrCreate()
 
-df_csv = spark.read \
-    .option("header", "true") \
-    .schema(dict_city['schema_template']) \
-    .csv(f'{gs_bkt}/{fpath}')
+df_csv = spark.read.parquet(f'{gs_bkt}/{in_path}')
 
 # parse datetime from provided date column of specific format
 p_func = lambda s: pdl.from_format(s, dict_city['date_format'])

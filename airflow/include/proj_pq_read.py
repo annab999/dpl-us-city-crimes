@@ -36,9 +36,6 @@ creds_path = os.getenv('SPARK_CREDENTIALS')
 # for city-specific data
 dict_city = dict_cities[city_proper]
 
-# additional ignore flag at end for cities with no data for year
-.set("spark.sql.files.ignoreMissingFiles", "true") ###################### GET ME
-
 # connect to GCS
 sc = SparkContext(conf=SparkConf())
 hconf = sc._jsc.hadoopConfiguration()

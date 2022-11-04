@@ -10,14 +10,15 @@ The following are the software (and corresponding versions) used for this projec
 | desktop | Windows 10 | Terraform | 1.3.2 | workstation |
 | VM | CentOS 7 | gcloud SDK | 407.0.0 |  |
 | VM | CentOS 7 | Docker Engine | 20.10.20 |  |
-| container | Debian 11 | Python | 3.7.14 | for Airflow |
+| container | Debian 11 | Python | 3.9.15 | for Airflow |
 | container | Debian 11 | gcloud SDK | 407.0.0 | for Airflow |
 | container | Debian 11 | Postgres | 13.8 | for Airflow |
+| container | Debian 11 | OpenJDK | 17.0.2 | for spark-submit |
 | container | Debian 11 | Apache Airflow | 2.4.2 | with CeleryExecutor |
-| container | Debian | Anaconda | 4.12 | for Spark |
-| container | Debian | Python | 3.9.12 | for Spark |
-| container | Debian | OpenJDK | 17.0.2 | for Spark |
-| container | Debian | Apache Spark | 3.3.1 |  |
+| container | Debian 11 | Anaconda | 4.12 | for Jupyter (dev) |
+| container | Debian 11 | Python | 3.9.12 | for Spark |
+| container | Debian 11 | OpenJDK | 17.0.2 | for Spark |
+| container | Debian 11 | Apache Spark | 3.3.1 |  |
 | cloud | - | BigQuery |  | managed |
 | cloud | - | dbt |  | managed |
 
@@ -483,7 +484,6 @@ But when I create the connection via GUI and set the `host` field value to be `s
 - **Resolution**: Stuff
 
 ## TODOs:
-- dag running per year but parsing is lahat
 - try: ti.xcom in `map()` func
 - `curls = parse_link.output.map(parse_bash)`
 - `curls.value[item]`
@@ -496,7 +496,7 @@ But when I create the connection via GUI and set the `host` field value to be `s
 - remove whitespace from los angeles within Location, Cross Street
 - try spark submit in cluster mode
 - try user defined macros for curls func, templates_dict for pythonop
-- use task decorators
+- use task decorators, task branching
 - https://stackoverflow.com/questions/7194939/git-change-one-line-in-file-for-the-complete-history
 - slim-airflow branch - next step: separate ROOT and AIRFLOW_USER installs (apt-get, pip)
 
