@@ -57,7 +57,7 @@ dict_chicago = {
     'date_string_col': 'Date',
     'with_year_col': True,
     'csv_parts': 1,
-    'pq_parts': 1,
+    'pq_parts': 2,
     'selected_cols': ['case_number', 'timestamp', 'city', 'street', 'primary_type', 'description', 'location_description', 'arrest', 'domestic', 'beat', 'latitude', 'longitude'],
     'parser': parse_chi,
     'p_ret_type': types.StringType(),

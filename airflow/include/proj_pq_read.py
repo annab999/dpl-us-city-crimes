@@ -9,29 +9,28 @@
 from pyspark.conf import SparkConf
 from pyspark.context import SparkContext
 from pyspark.sql import SparkSession
+from pyspark.sql import types
 from pyspark.sql import functions as F
 
 import os
 import argparse
-import pandas as pd
+import pendulum as pdl
 
 from city_vars import dict_cities
 
 # inputs
-parser = argparse.ArgumentParser(description = 'Read monthly Parquets, clean and choose columns, combine cities per month.')
-parser.add_argument('city_proper',
-    choices = ['Chicago', 'San Francisco', 'Los Angeles', 'Austin'],
-    help = 'specify 1 of the 4 cities for its corresponding template')
-parser.add_argument('year', help = 'year of data to use')
-parser.add_argument('zmonth', help = 'zero-padded month of data to use')
+parser = argparse.ArgumentParser(description = 'Read Parquet file into Spark, clean rows, add standard timestamps, divide into months.')
+parser.add_argument('csv_fpath', help = 'CSV file name and path prefix (if any), e.g. <dir1>/<subdir>/<fname>.<ext>')
+parser.add_argument('pq_dir', help = 'Parquet path prefix replacing old prefix in csv_fpath')
 args = parser.parse_args()
 
 # parsed inputs
-city_proper = args.city_proper
-year = args.year
-zmonth = args.zmonth
+csv_fpath = args.csv_fpath
+pq_dir = args.pq_dir
+city_proper = os.getenv('CITY_PROPER')
 gs_bkt = os.getenv('GCP_GCS_BUCKET')
 creds_path = os.getenv('SPARK_CREDENTIALS')
+in_path = csv_fpath.replace('raw/', pq_dir).replace(os.getenv('IN_FMT'), '')
 
 # for city-specific data
 dict_city = dict_cities[city_proper]
@@ -48,17 +47,43 @@ spark = SparkSession.builder \
     .config(conf=sc.getConf()) \
     .getOrCreate()
 
-df_pq = spark.read.parquet(f"{gs_bkt}/pq/from_raw/{dict_city['formatted']}/{year}/{zmonth}")
+df_in = spark.read.parquet(f'{gs_bkt}/{in_path}/*')
 
-parser_udf = F.udf(dict_city['parser'], returnType=dict_cities['p_ret_type'])
+# filter out rows with null values in important columns
+# parse datetime from provided date column of specific format
+p_func = lambda s: pdl.from_format(s, dict_city['date_format'])
+parse_dt_udf = F.udf(p_func, returnType=types.TimestampType())
 
-# filter out duplicates
-# parse some columns
-# pick out important columns
-df_select = df_pq \
-    .distinct() \
-    .select(dict_city['selected_cols']) \
-    .withColumn(dict_city['p_new_col'], parser_udf(dict_city['p_orig_col'])) \
-    .withColumn('city', F.lit(city_proper))
+df_time = df_in \
+    .filter(F.col(dict_city['date_string_col']).isNotNull()) \
+    .withColumn('Timestamp', parse_dt_udf(F.col(dict_city['date_string_col']))) \
+    .drop(dict_city['date_string_col'])
 
-df_select.write.parquet(f'{gs_bkt}/pq/clean/{dict_cities['formatted']}/{year}/{zmonth}/', mode='overwrite')
+# parse year list
+if dict_city['with_year_col']:
+    years_rows = df_time \
+        .select('Year')
+    df_time.drop('Year')
+else:
+    years_rows = df_time \
+        .select(F.year('Timestamp').alias('Year'))
+years_rows = years_rows \
+    .dropna() \
+    .dropDuplicates(['Year']) \
+    .collect()
+years = [row.Year for row in years_rows]
+years.sort()
+
+# write to parquet
+o_cols = df_time.columns
+cols = [col.lower().replace(' ', '_') for col in o_cols]
+for year in years:
+    df = df_time.filter(F.year('Timestamp') == year)
+    for month in range(1, 13):
+        df_month = df.filter(F.month('Timestamp') == month)
+        for i in range(len(o_cols)):
+            df_month = df_month.withColumnRenamed(o_cols[i], cols[i])
+        if dict_city['pq_parts'] > 1:
+            df_month = df_month.repartition(dict_city['pq_parts'])
+        df_month.write \
+            .parquet(f"{gs_bkt}/pq/from_raw/{dict_city['formatted']}/{year}/{month:02}", mode='overwrite')

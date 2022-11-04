@@ -102,8 +102,8 @@ with DAG(
                     name = '{{ task.task_id }}',
                     py_files = '{{ include_dir }}/city_vars.py',
                     jars = '{{ jar_path }}',
-                    driver_memory = '5G',
-                    executor_memory = '3G',
+                  # driver_memory = '5G',
+                  # executor_memory = '3G',
                     max_active_tis_per_dag = 1,
                     env_vars = {
                         'CITY_PROPER': cities[f_cities.index(city)],
