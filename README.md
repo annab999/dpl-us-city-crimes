@@ -1,15 +1,20 @@
 # End-to-end Pipeline Project
 Stuff is still in main [README.md](../README.md)
 
-## Version Matrix
-The following are the software (and corresponding versions) used for this project:
+## Version Matrices
+This project was built and tested on these platforms/software:
 
 | Platform | OS | Software | Version | Notes |
 | --- | --- | :---: | :--: | ---: |
 | desktop | Windows 10 | gcloud SDK | 407.0.0 | workstation |
 | desktop | Windows 10 | Terraform | 1.3.2 | workstation |
-| VM | CentOS 7 | gcloud SDK | 407.0.0 |  |
-| VM | CentOS 7 | Docker Engine | 20.10.20 |  |
+| VM | CentOS 7 | gcloud SDK | 407.0.0 | host machine |
+| VM | CentOS 7 | Docker Engine | 20.10.20 | host machine |
+
+The apps and software used by the project:
+
+| Platform | OS | Software | Version | Notes |
+| --- | --- | :---: | :--: | ---: |
 | container | Debian 11 | Python | 3.9.15 | for Airflow |
 | container | Debian 11 | gcloud SDK | 407.0.0 | for Airflow |
 | container | Debian 11 | Postgres | 13.8 | for Airflow |
