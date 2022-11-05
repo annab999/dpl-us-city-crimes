@@ -22,12 +22,38 @@ The following are the software (and corresponding versions) used for this projec
 | cloud | - | BigQuery |  | managed |
 | cloud | - | dbt |  | managed |
 
-## Instructions:
-1. Clone this repo. Only files from this (`project`) folder will be used.
-2. Set up your GCP (trial) account.
-3. Set up service accounts and JSON keys for the following:
- - 
-4. Edit [.env](./.env) with you GCP details and key locations.
+## Deployment Instructions
+1. Clone the repo. Only files from this (`project`) folder will be used, however.
+2. Set up your GCP (trial) account. Create service accounts, assign corresponding roles, and download JSON keys for the following:
+   - Airflow: *Bigquery Admin, Storage Admin, Storage Object Admin, Viewer*
+   - Spark: *Storage Admin, Storage Object Admin, Viewer*
+   - dbt: *Data Editor, Job User, User, Data Viewer*
+3. Set up your Docker host machine / workstation.
+   - The following are required:
+     - Linux OS
+     - at least 15GB of available disk space
+     - a user with sufficient rights to run Docker, write stuff
+   - Copy the following there:
+     - this folder
+     - service account JSON keys
+4. Edit [.env](./.env) with your GCP details and `CREDS` (JSON) locations. Run `id -u` and use the output as value to `AIRFLOW_UID`.
+5. On your host machine, edit and run the following:
+   ```
+   ### start docker service to be sure
+   $ systemctl start docker
+   ### replace the placeholder with the path to the project dir
+   $ cd </path/to/>project
+   ### build the app images
+   $ docker compose build
+   ### initialize the Airflow DB
+   $ docker compose up airflow-init
+   ### start up Airflow and Spark services
+   $ docker compose up
+   ```
+6. Access Airflow via `https://<docker-host-address>:8080` with default `airflow/airflow`. Spark master GUI is also accessible at `https://<docker-host-address>:8081`.
+7. Trigger `proj_get_data_dag` and wait to finish
+8. Trigger `proj_process_data_dag` and wait to finish
+9. <GLS page>
 
 ## Development Issues
 Here are the issues I encountered in setting up the project.
@@ -49,10 +75,10 @@ Here are the issues I encountered in setting up the project.
   
   Again, unconfirmed and, can't really apply this to my BashOp.
   
-- **Resolution**: Have to wait for a patch/workaround.
+- **Resolution**: Have to wait for a patch/workaround
 
-### [Airflow] Airflow apparently runs from `$AIRFLOW_HOME`, and not `$AIRFLOW_HOME/dags`! >:(
-Below are my own info logs. This had been causing issues with opening the csv files in `parse_link` tasks.
+### [Airflow] Apparently runs from `$AIRFLOW_HOME`, not `$AIRFLOW_HOME/dags`! >:(
+Below are my own info logs. This had been causing issues with opening the CSV files in `parse_link` tasks.
 ```
 [2022-10-18, 03:59:34 PST] {task_functions.py:8} INFO - ---------WE ARE IN /opt/***-------
 [2022-10-18, 03:59:34 PST] {task_functions.py:8} INFO - ---------stuff in /opt/***/ are: ['dags', 'logs', 'plugins', 'include', '***.cfg', 'webserver_config.py', '***-worker.pid']-------
@@ -63,14 +89,15 @@ Below are my own info logs. This had been causing issues with opening the csv fi
   - use relative, absolute paths in `template_searchpath` attribute to DAG
   - use relative path in `open()` method
 
-  Had I tried absolute path in `open()` method immediately, it would work.
+  Had I tried absolute path in `open()` method immediately, it would have been working already.
   
-- **Resolution**: Modify code to use relative path prefix var in `open()` method
+- **Resolution**: stop relying on ~that body~ `template_searchpath`, at least in file `open()`
 
 ## Terrible Mistakes courtesy of Me
-Here is my stupidity in action.
+My stupidity in action.
 
-### [Airflow] TM #1: wrong input type (`dict` of `list`s) passed to `map()` callable
+### [Airflow] Wrong input type (`dict` of `list`s) passed to `map()` callable
+My code:
 ```
 parse_link = PythonOperator(
     task_id = f'parse_link_{city}',
@@ -85,15 +112,16 @@ def parse_py(name, gs, ext):
 curls = parse_link.output.map(parse_bash)                                       # expects a list
 ```
 
-- **Observations**: Only noticed while diff-ing with trial DAG that worked (using XCom) :( I sincerely thought that the errors were issues with XCom / dynamic task mapping / `.expand()`, because I was using a combo of this in this part.
+- **Observations**: Only noticed my mistake while `diff`-ing with test DAG that worked (using ID-ed XCom arg) :( I sincerely thought that the errors were issues with XCom / dynamic task mapping / `.expand()`, because I was using a combo of this sort in this part.
 
-  So all my searches were around these lines, and nothing I find could really directly pertain to my issue. My snobbish self even thought I was affected by https://github.com/apache/airflow/issues/25061, but of course not.
+  So all my searches were around these lines, and nothing I find could really directly pertain to my issue. My snobbish self even thought I was affected by https://github.com/apache/airflow/issues/25061, but of course I wasn't.
 
-  Until I played around and diff-ed with a test using ID-ed XCom arg that worked.
+  Until I played around and `diff`-ed.
   
 - **Resolution**: Fix function to return `list` (of `dict`s)
 
-### [Airflow] TM #2: wrong input type (`list`) defined and coded in `map()` callable
+### [Airflow] Wrong input type `list` defined and coded in `map()` callable
+Task run error:
 ```
 [2022-10-18T13:02:19.000+0000] {taskinstance.py:1851} ERROR - Task failed with exception
 Traceback (most recent call last):
@@ -125,27 +153,27 @@ def parse_bash(url_dict):                                       # thinks it rece
                                                                 # entire content of code parses on a dict
 ```
 
-- **Observations**: Kept getting this error and kept thinking it was again (as the earlier related issue) an Airflow bug with the combo of features I was working on. Only realized the *real* after issue after having fixed the earlier issue with a set of more self-aware eyes.
+- **Observations**: Kept getting this error and kept thinking it was, again (as my earlier related mistake), an Airflow bug from the combo of features I was working on. Only realized the *real* issue after having fixed the earlier issue with a set of more self-aware eyes.
 
-- **Resolution**: Fix function to use arg of each individual item of the mapped `list` (alternatively, could use combo of `.expand_kwargs()` and a separate function)
+- **Resolution**: Fix function to use arg of each item of the mapped `list` (alternatively, could use combo of `.expand_kwargs()` and a separate function)
 
 ## Back to Development Issues
 
-### [Airflow] DAGs/tasks sometimes become non-performant/buggy even with fixes
-*I wasn't able to take a screenshot, but the boxes for dead tasks are flattened squares instead of the usual. And they're never executed nor shaded any color at all.*
-- **Observations**: This happens after multiple edits to the DAG file and its tasks. It's like Airflow DB drowns in confusion and doesn't recover, for that DAG.
+### [Airflow] DAGs/tasks sometimes become non-performant/buggy with time
+I wasn't able to take a screenshot, but the boxes for dead tasks are flattened squares instead of the usual. And they're never executed nor shaded any color at all.
+- **Observations**: This happens after multiple edits to the DAG file and its tasks. It's like Airflow DB drowns in confusion and isn't able to recover, for that DAG.
   
-- **Resolution**: Need to restart Airflow, or recreate as a new DAG with a new name. Do every now and then, to avoid false negatives and hours of wasted debugging T_T
+- **Resolution**: Need to restart Airflow, or recreate DAG with a new name. Do every now and then, to avoid false negatives and hours of wasted debugging T_T
 
-### [Airflow] Crosstalk(?) within the `<task_var>.output` of an Operator among child task instances
-![airflow_mixedoutput_taskinstance_issue.png](docu/airflow_mixedoutput_taskinstance_issue.png?raw=true "Airflow mixed ouput issue with task instances")
+### [Airflow] Crosstalk(?) among child tasks within the `<task_var>.output` of an Operator
+![airflow_mixedoutput_taskinstance_issue.png](docu/airflow_mixedoutput_taskinstance_issue.png?raw=true "Airflow mixed output issue with task instances")
 
-- **Observations**: You could imagine my surprise. Seems this is due to some queueing / race condition with the different values (1 for each city) stored in my `<parse_task_var>.output`, wherein I'm unable to specify the task ID.
+- **Observations**: You could imagine my surprise. Seems it's due to some queueing / race condition with the different values (1 for each city) stored in my `<parse_task_var>.output`, wherein I'm unable to specify the task ID.
   
-- **Resolution**: Use `ti.xcom_pull(key='<key>', task_ids='<task_id>')` as much as possible to specify value. Don't forget to use **complete ID** (this is not the task var)!
+- **Resolution**: Use `ti.xcom_pull(key='<key>', task_ids='<task_id>')` to specify value. Don't forget to use **complete task ID** (this is not the task var!)
 
 ### [Docker] Directory permissions error during startup of Airflow containers
-The error when composing the rest of the airflow containers (after `airflow-init`):
+Error when composing the rest of the airflow containers (after `airflow-init`):
 ```
 project-airflow-cli-1        | Unable to load the config, contains a configuration error.
 project-airflow-cli-1        | Traceback (most recent call last):
@@ -169,22 +197,22 @@ project-airflow-cli-1        |     self._accessor.mkdir(self, mode)
 project-airflow-cli-1        | PermissionError: [Errno 13] Permission denied: '/opt/airflow/logs/scheduler'
 ```
 
-- **Observations**: This came up only after I refactored my `compose.yaml` to include both airflow and spark containers. Made a lot of changes, (code) optimizations, new variables on all compose files because of the merging. But airflow and spark setups had been working separately.
+- **Observations**: This came up only after I refactored my `compose.yaml` to include both Airflow and Spark containers. Had been making some changes and added variables in all compose files since of the merging, but Airflow and Spark setups were working separately.
 
-Noticed the permissions on my host airflow directories (generated and existing) also seemed to be typical.
+  Noticed the permissions on my host Airflow directories (generated and existing) seemed to be typical.
 
-  Tried the following to no avail: *(italicizing items I consequently also used during actual fix)*
-  - revert personal `USER ${AIRFLOW_USER}`, which I passed as `ARG` from `compose.yaml`, to original `USER $AIRFLOW_UID`, which should never have gotten passed since only defined in `.env`
-    - *also up postgres, redis (I forgot to specify them along with other airflow services)*
-      - *also remove `logs/`, `plugins/` folders before composing*
-        - *also rebuild with cache cleared*
-  - *revert* back *to my personal `USER ${AIRFLOW_USER}` build-time arg*
-    - with above sub-bullets also done
-  - tried to run standalone airflow `compose.yaml` that worked from before, with the following changes:
-    - same .env file as complete compose project (with spark)
-    - in a temporary `temp/` folder outside of the original `airflow/` folder
+  Tried the following to no avail *(italicizing items I consequently also used during actual fix)*:
+    - revert personal `USER ${AIRFLOW_USER}`, which I passed as `ARG` from `compose.yaml`, to original `USER $AIRFLOW_UID`, which should never have been passed since only defined in `.env`
+      - *also up Postgres, Redis (I forgot to specify them along with other Airflow services)*
+        - *also remove `logs/`, `plugins/` folders before composing*
+          - *also rebuild with cache cleared*
+    - *revert* back *to my personal `USER ${AIRFLOW_USER}` build-time arg*
+      - with above sub-bullets also done
+    - run standalone Airflow `compose.yaml` that worked from before, with these changes:
+      - same `.env` file as complete compose project (with Spark)
+      - in a temporary `temp/` folder outside of the original `airflow/` folder
   
-  While running the last test above ad comparing preprocessed configs, I noticed that a source for a bind mount was set in `project/` (host *working* directory), when I believe it's supposed to be `project/airflow/` (host *airflow* directory):
+  While running the last test above ad comparing preprocessed configs, I noticed that a source for a bind mount was set in `project/` (host *working* directory), when I believe it's supposed to be `project/airflow/` (host *Airflow* directory):
   ```
   services:
     airflow-init:
@@ -194,12 +222,12 @@ Noticed the permissions on my host airflow directories (generated and existing) 
         source: /home/j*********ph/dezoomcamp/project
         target: /sources
   ```
-  I actually missed that single dot in `- .:sources/` while updating paths and actually grepping volume defs! :<
+  I actually missed that single dot in `- .:sources/` while updating paths and actually `grep`-ping volume defs! :<
 
-- **Resolution**: Update host path in bind mount def for `sources/` (used in initialization of Airflow) to actual Airflow directory. Always look closer at volume mappings!
+- **Resolution**: Update host path in bind mount def for `sources/` (used in initialization of Airflow) to actual Airflow directory. Look closer at volume mappings!
 
 ### [Docker] Permissions error during Jupyter startup (in Spark container)
-The error when starting up the spark container, which also runs Jupyter, at least until I finish coding the scripts:
+Error when starting up the Spark container, which also runs Jupyter, at least for dev:
 ```
 Traceback (most recent call last):
   File "/opt/conda/bin/jupyter-notebook", line 11, in <module>
@@ -223,9 +251,9 @@ Traceback (most recent call last):
 PermissionError: [Errno 13] Permission denied: '/home/spark_files/.local'
 ```
 
-- **Observations**: Build is successful. Spark seems to run fine, and error is due to the container default command of opening a Jupyter notebook on start. Won't be a problem in prod once I remove Jupyter from the Spark container, but I'll also solve this now.
+- **Observations**: Build is successful. Spark seems to run fine, and error is due to the container `CMD` opening a Jupyter notebook. Won't be a problem in prod once I remove Jupyter, but I'll also solve this now.
 
-  All should be solved by just passing `--allow-root` to the command and using `root` for the entire thing, but that isn't recommended, hence I set up a service user. Tried a lot of stuff here as I thought it was due to my custom user and directories, and in the end realized the error was with the *host side* of the bind mount:
+  All should be solved by passing `--allow-root` to the command and using `root` for the entire build, but not recommended, hence I set up a service user. Tried a lot of stuff here as I thought it was due to my custom user and directories, and in the end realized the error was with the *host side* of the bind mount:
   ```
   Container project-spark-1  Recreated                                                           0.1s
   Attaching to project-spark-1
@@ -235,7 +263,7 @@ PermissionError: [Errno 13] Permission denied: '/home/spark_files/.local'
   project-spark-1  | -rw-rw-r--. 1 1475897537 1475897537 1801 Oct 21 14:17 Dockerfile
   ```
 
-  I remembered the last step in the Airflow Dockerfile to switch to user with the my host user's UID: `USER ${AIRFLOW_UID}`, where `AIRFLOW_UID=$(id -u)` on the host. When I use this UID in the Dockerfile though, the build gets stuck at `exporting layers` (last step pf everything):
+  Remembered the last step in the Airflow Dockerfile to switch to user with the my host user's UID: `USER ${AIRFLOW_UID}`, where `AIRFLOW_UID=$(id -u)` on the host. When I use this UID in the Dockerfile though, the build gets stuck at `exporting layers` (second to last step):
   ```
   ...
   #9 7.849 ++ hash -r
@@ -248,7 +276,7 @@ PermissionError: [Errno 13] Permission denied: '/home/spark_files/.local'
 
   Realized this only happens when I assign UID to my custom user, but not when switching `USER` arg at the last step. But still seems wrong...
 
-  Also finally remembered `chmod` and `chown`. All combos did not work in container directory, then FINALLY (group `root` or gid 0 was sufficient for my case because I added my custom user to that group in the container):
+  Also finally remembered `chmod` and `chown`. All combos did not work in container directory, then *finally* (group `root` or `gid` 0 was sufficient for my case because I added my custom user to that group in the container):
   ```
   $ ls -al spark
   total 4
@@ -298,12 +326,12 @@ Filesystem      Size  Used Avail Use% Mounted on
 ...
 ```
 
-- **Observations**: Inaccurate size listed for the build cache. Started happening after my build stalls, multiple rebuilds, build aborts. Though I always run `docker builder prune` when I rebuild, seems some data is still cached until system restart.
+- **Observations**: Inaccurate size listed for the build cache. Started happening after my build stalls, multiple rebuilds, build aborts. Although I always run `docker builder prune` when I rebuild, seems some data is still cached until system restart?
   
 - **Resolution**: Restart docker service after many failed/test builds
 
-### [Airflow] Incomplete stream transfers by BashOp marked by Airflow as successes
-So the whole time, I've been using the files from the first successful DAG run and turns out the files were incompletely transferred.
+### [Airflow] False positive incomplete stream transfers by BashOp
+So the whole time, I've been using the files from the first successful DAG run, and turns out the files were incompletely transferred.
 
 Sample of a false positive run:
 ```
@@ -343,26 +371,24 @@ Sample of an actual successful run:
   - increase `sleep` delay - from initial 10s to up to 45s
   - task param
     - set `max_active_tis_per_dag` (no default value) to 8, 4
-  - check tcp
+  - tcp params
     - `$ cat /proc/sys/net/ipv4/tcp_keepalive_time` gave 7200s, which doesn't seem to apply to this case
-  - check `gcloud storage cp` ref - no timeout params
+  - `gcloud storage cp` ref has no timeout params
   
-  Then, tried running 1 city only (Austin, which had 4 task instances) and worked. So tried the following:
-  - remove my `sleep` delay: SEEMS THIS INTRODUCED MORE PROBLEMS THAN SOLVED ANY
-    - set even lower `max_active_tis_per_dag`
-      - 2: worked 
-      - 4: a few false positives, **without `curl (18)` errors**!
-      - *(for science)* none: more false positives with  `curl(18)` errors
-      - 3: worked
+  Then, tried running 1 city only and worked. So tried the following together:
+  - remove my `sleep` delay: *seems this introduced more problems than solved any*
+  - set even lower `max_active_tis_per_dag`
+    - 2: worked 
+    - 4: a few false positives, **without `curl (18)` errors**!
+    - *(for science)* none: more false positives with  `curl(18)` errors
+    - 3: worked
 
 - **Resolution**: Remove my initial sleep delay! Set `max_active_tis_per_dag` to < 4
 
 ### [Spark] Repartitioning optimization experiments with 1 year data
-Main thing to note:s
-  - took >2mins each month for writing to parquet from csv df with minor (time) transformations
-  - took 2mins for whole year for writing to parquet from csv df with no transformations
+Main thing to notes: it took >2mins each month for writing to parquet from `df_csv` with minor (time) transformations, while it took 2mins for whole year for writing to parquet from `df_csv` with no transformations.
 - **Observations**: Tried the following:
-  - `df.repartition()` values (best to good location of repartition step)
+  - `df.repartition()` values (best to good location in script)
     - Chicago: none, 2, 4, 6, 12
       - location of repartition step: none, before writing, before filtering
     - San Francisco (best to good):
@@ -374,19 +400,19 @@ Main thing to note:s
       - before writing
         - 24, 12, 20, 10
 
-- **Resolution**: more experiments but most especially, read more on optimizations (repartition, coalesce, parallelize, cache)
-### [Spark-Airflow] Getting remote spark-submit to work remotely
+- **Resolution**: More experiments needed but most especially, read more on optimizations (`.repartition()`, `.coalesce()`, `.parallelize()`, `.cache()`)
+### [Spark-Airflow] Getting remote `spark-submit` to work
 Manual trial from Airflow container:
 ```
 $ spark-submit
 /home/airflow/.local/lib/python3.7/site-packages/pyspark/bin/load-spark-env.sh: line 68: ps: command not found
 JAVA_HOME is not set
 ```
-- **Observations**: Turns out that as opposed to instructions online to unpack [Spark tgz](https://spark.apache.org/downloads.html) onto remote Airflow executor, Spark binaries are already in my Airflow containers upon install of `apache-airflow-providers-apache-spark` pip module, and are already callable from `/home/airflow/.local/bin` (already in `PATH`).
+- **Observations**: Turns out that as opposed to multiple instructions online to unpack [Spark tgz](https://spark.apache.org/downloads.html) onto remote Airflow executor, Spark binaries are already in Airflow containers upon install of `pip` module `apache-airflow-providers-apache-spark`, and are callable from `/home/airflow/.local/bin` (already in `PATH`).
 
 - **Resolution**: Need to install `procps` and Spark prerequisite OpenJDK during build of Airflow images
 
-### [Docker] ENV step in Dockerfile not resolving bash command output
+### [Docker] `ENV` step in Dockerfile not interpolating bash command output
 In an effort to remove hardcoding of `py4j` lib file in the Spark Dockerfile, I set the following code for updating `PYTHONPATH` env var:
 ```
 ENV PYTHONPATH="${SPARK_HOME}/python/lib/$(ls ${SPARK_HOME}/python/lib/ | grep py4j):${SPARK_HOME}/python:${PYTHONPATH}"
@@ -396,11 +422,11 @@ However, env var resolution within the container is:
 $ echo $PYTHONPATH
 /opt/spark-3.3.1-bin-hadoop3/python/lib/$(ls /opt/spark-3.3.1-bin-hadoop3/python/lib/ | grep py4j):/opt/spark-3.3.1-bin-hadoop3/python:
 ```
-- **Observations**: Can't just isolate the bash command and save its output to an `ARG`, nor does it seem improper to save the output string as another `ENV`. Tried checking for the proper syntax in `ENV` or an implementation via `RUN`, but found https://github.com/moby/moby/issues/29110 (still open).
+- **Observations**: Can't just isolate the bash command and save output to an `ARG`, nor does it seem proper to save the output string as another `ENV`. Tried checking for the proper syntax in `ENV` or an implementation via `RUN`, but found https://github.com/moby/moby/issues/29110 (still open).
 
-- **Resolution**: Revert to hardcoded `"${SPARK_HOME}/python/lib/py4j-0.10.9.5-src.zip:${SPARK_HOME}/python:${PYTHONPATH}"` and wait for feature to be implemented
+- **Resolution**: Revert to hardcoded `"${SPARK_HOME}/python/lib/py4j-0.10.9.5-src.zip:${SPARK_HOME}/python:${PYTHONPATH}"` and wait for suggested `RUN` feature to be implemented
 
-### [Airflow] SparkSubmitOperator parsing of master URL from Spark Connection is very weird
+### [Airflow] `SparkSubmitOperator` parsing of master URL from Airflow *connection* is very weird
 When I set `AIRFLOW_CONN_PROJECT_SPARK=spark://project-spark-1:7077`, output is:
 ```
 [2022-10-30, 15:32:11 UTC] {spark_submit.py:334} INFO - Spark-Submit cmd: spark-submit --master project-spark-1:7077 --py-files city_vars.py --jars https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar --name prepare_data_austin --verbose test_file_read.py ...
@@ -459,7 +485,7 @@ But when I create the connection via GUI and set the `host` field value to be `s
       f"Cannot execute: {self._mask_cmd(spark_submit_cmd)}. Error code is: {returncode}."
   airflow.exceptions.AirflowException: Cannot execute: spark-submit --master project-spark-1:7077 --py-files city_vars.py --jars https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar --name prepare_data_austin --verbose test_file_read.py ...
   ```
-  (Same effect when I set it up as `AIRFLOW_CONN_SPARK_DEFAULT`, and when I set `deploy-mode=cluster`.) But from the source code, it seems to parse out this same prefix, when connection is registered in URI format.
+  (Same effect when I set it up as `AIRFLOW_CONN_SPARK_DEFAULT`, and when I set `deploy-mode=cluster`.) But from the source code above, it seems to parse out this same prefix, when connection is registered in URI format.
 
   Tried running this in preparation for just passing it as an `ENTRYPOINT` to the containers:
   ```
@@ -474,8 +500,10 @@ But when I create the connection via GUI and set the `host` field value to be `s
   [2022-10-31, 13:27:22 UTC] {spark_submit.py:485} INFO - Parsed arguments:
   [2022-10-31, 13:27:22 UTC] {spark_submit.py:485} INFO - master                  spark://project-spark-1:7077
   ```
-  Tried to apply that hidden pre-parsing step by SparkSubmitOperator for non-URI connections, as a *workaround* on my URI env var `AIRFLOW_CONN_PROJECT_SPARK: 'spark://:@spark://${SPARK_HOSTNAME}:7077'`, however, still parsed the master URL as just `spark` (same as 2nd error output above). Looking back at the code snippet in question, seems it parses the string before the `:` character even *after* parsing with the `@` involved (maybe `if ":" in hostname:` should be an `elif`?)
-- **(Ironic) Resolution**: Use a JSON input (instead of URI) to the env var, which is **exactly what I've been avoiding** the whole time as [the docs recommended a URI syntax](https://airflow.apache.org/docs/apache-airflow-providers-apache-spark/stable/connections/spark.html#howto-connection-spark))
+  Tried to apply that hidden pre-parsing step by `SparkSubmitOperator` for non-URI connections, as a *workaround* on my URI env var `AIRFLOW_CONN_PROJECT_SPARK: 'spark://:@spark://${SPARK_HOSTNAME}:7077'`, however, it still parsed the master URL as just `spark` (same as 2nd error output above).
+  
+  Looking back at the code snippet in question, seems it parses the string before the `:` character even *after* parsing with the `@` involved (maybe `if ":" in hostname:` should be an `elif`?)
+- **(Ironic) Resolution**: Use a JSON input (instead of URI) to the connection env var, which is **exactly what I've been avoiding** the whole time as [the docs recommended a URI syntax](https://airflow.apache.org/docs/apache-airflow-providers-apache-spark/stable/connections/spark.html#howto-connection-spark))
 
 ### [Service] Template
 
