@@ -50,7 +50,7 @@ x-airflow-common:
     AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
     AIRFLOW__CORE__FERNET_KEY: ''
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
-    AIRFLOW__CORE__LOAD_EXAMPLES: 'true'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth'
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
     GOOGLE_APPLICATION_CREDENTIALS: /.google/credentials/${AIRFLOW_CREDS}
@@ -298,6 +298,17 @@ services:
     volumes:
       - ${SPARK_HOST}:${SPARK_FILES_LOC}
       - ${CREDS_HOST}/spark:/.google/credentials:ro
+
+  spark-worker:
+    build:
+      context: ${SPARK_WORKER_HOST}
+      args:
+        <<: *project-common-arg
+        MASTER_HOSTNAME: ${SPARK_HOSTNAME}
+    environment:
+      <<: *project-common-env
+    depends_on:
+      - spark
 
 volumes:
   ################################## AIRFLOW ##################################

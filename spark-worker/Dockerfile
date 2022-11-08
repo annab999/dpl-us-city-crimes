@@ -1,4 +1,4 @@
-FROM continuumio/anaconda3
+FROM python:3.9.15-bullseye
 
 # loudly fail on error
 SHELL ["/bin/bash", "-o", "pipefail", "-e", "-u", "-x", "-c"]
@@ -7,7 +7,6 @@ USER root
 
 # arg and env vars
 ARG INSTALL_DIR
-ARG FILES_DIR
 ARG MASTER_HOSTNAME
 ARG JDK_FILE=openjdk-17.0.2_linux-x64_bin.tar.gz
 ARG SPARK_VERSION=spark-3.3.1-bin-hadoop3
@@ -16,7 +15,6 @@ ARG JAR_LOC=${INSTALL_DIR}/hadoop-lib
 
 ENV JAVA_HOME=${INSTALL_DIR}/jdk-17.0.2
 ENV SPARK_HOME=${INSTALL_DIR}/${SPARK_VERSION}
-ENV FILES_HOME=${FILES_DIR}
 ENV JAR_FILE_LOC=${JAR_LOC}/${JAR_FILE}
 ENV SPARK_MASTER_HOSTNAME ${MASTER_HOSTNAME}
 
@@ -45,12 +43,8 @@ ENV PYTHONPATH="${SPARK_HOME}/python/lib/py4j-0.10.9.5-src.zip:${SPARK_HOME}/pyt
 # set up work area
 USER spark-user
 COPY requirements.txt .
-RUN mkdir -p "${FILES_HOME}" \
-    && source /opt/conda/bin/activate \
-    && pip install --no-cache-dir -r requirements.txt
-WORKDIR "${FILES_HOME}"
+RUN pip install --no-cache-dir -r requirements.txt
 
-CMD "${SPARK_HOME}/sbin/start-master.sh" --host "${SPARK_MASTER_HOSTNAME}" \
-    && "${SPARK_HOME}/sbin/start-worker.sh" "spark://${SPARK_MASTER_HOSTNAME}:7077" \
+CMD "${SPARK_HOME}/sbin/start-worker.sh" "spark://${SPARK_MASTER_HOSTNAME}:7077" \
         --cores 2 --memory 7G \
-    && jupyter notebook --ip=0.0.0.0 --no-browser
+    && tail -f /dev/null
