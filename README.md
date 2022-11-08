@@ -24,15 +24,16 @@ The apps and software used by the project:
 | container | Debian 11 | Python | 3.9.12 | for Spark |
 | container | Debian 11 | OpenJDK | 17.0.2 | for Spark |
 | container | Debian 11 | Apache Spark | 3.3.1 |  |
-| cloud | - | BigQuery |  | managed |
-| cloud | - | dbt |  | managed |
+| cloud | - | BigQuery | - | managed |
+| cloud | - | dbt | 1.3.0 | managed |
+| cloud | - | Google Looker Studio | - | managed |
 
 ## Deployment Instructions
 1. Clone the repo. Only files from this (`project`) folder will be used, however.
 2. Set up your GCP (trial) account. Create service accounts, assign corresponding roles, and download JSON keys for the following:
    - Airflow: *Bigquery Admin, Storage Admin, Storage Object Admin, Viewer*
    - Spark: *Storage Admin, Storage Object Admin, Viewer*
-   - dbt: *Data Editor, Job User, User, Data Viewer*
+   - dbt: *BigQuery Data Editor, BigQuery Job User, BigQuery User, BigQuery Data Viewer*
 3. Set up your Docker host machine / workstation.
    - The following are required:
      - Linux OS
@@ -42,7 +43,7 @@ The apps and software used by the project:
      - this folder
      - service account JSON keys
 4. Edit [.env](./.env) with your GCP details and `CREDS` (JSON) locations. Run `id -u` and use the output as value to `AIRFLOW_UID`.
-5. On your host machine, edit and run the following:
+5. Connect and log on to your host machine. Then, edit and run the following:
    ```
    ### start docker service to be sure
    $ systemctl start docker

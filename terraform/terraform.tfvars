@@ -2,11 +2,11 @@
 credentials_file = "..\\..\\.google\\credentials\\terraform-denzoom-504ff36e2018.json"
 # credentials_file = "../../.google/credentials/terraform-denzoom-504ff36e2018.json"
 
-project = "project"
+project = "city-crimes"
 gcp = {
-  project = "denzoom"
-  region  = "us-west1"
-  zone    = "us-west1-c"
+  project = "city-crimes"
+  region  = "us-central1"
+  zone    = "us-central1-b"
 }
 dataset = {
   name         = "us_city_crimes"

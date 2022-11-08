@@ -8,7 +8,7 @@ resource "google_bigquery_dataset" "prep" {
 
   access {
     role          = "OWNER"
-    user_by_email = "terraform-service@denzoom.iam.gserviceaccount.com"
+    user_by_email = "terraform-city-crimes@city-crimes.iam.gserviceaccount.com"
   }
   access {
     role          = "OWNER"
@@ -24,11 +24,11 @@ resource "google_bigquery_dataset" "prep" {
   }
   # access {
   #     role          = "OWNER"
-  #     user_by_email = "airflow-service@denzoom.iam.gserviceaccount.com"
+  #     user_by_email = "airflow-city-crimes@city-crimes.iam.gserviceaccount.com"
   # }
   access {
     role          = "WRITER"
-    user_by_email = "dbt-service@denzoom.iam.gserviceaccount.com"
+    user_by_email = "dbt-city-crimes@city-crimes.iam.gserviceaccount.com"
   }
 }
 
@@ -42,7 +42,7 @@ resource "google_bigquery_dataset" "sandbox" {
 
   access {
     role          = "OWNER"
-    user_by_email = "terraform-service@denzoom.iam.gserviceaccount.com"
+    user_by_email = "terraform-city-crimes@city-crimes.iam.gserviceaccount.com"
   }
   access {
     role          = "OWNER"
@@ -58,11 +58,11 @@ resource "google_bigquery_dataset" "sandbox" {
   }
   # access {
   #     role          = "OWNER"
-  #     user_by_email = "airflow-service@denzoom.iam.gserviceaccount.com"
+  #     user_by_email = "airflow-city-crimes@city-crimes.iam.gserviceaccount.com"
   # }
   access {
     role          = "OWNER"
-    user_by_email = "dbt-service@denzoom.iam.gserviceaccount.com"
+    user_by_email = "dbt-city-crimes@city-crimes.iam.gserviceaccount.com"
   }
 }
 
@@ -76,7 +76,7 @@ resource "google_bigquery_dataset" "prod" {
 
   access {
     role          = "OWNER"
-    user_by_email = "terraform-service@denzoom.iam.gserviceaccount.com"
+    user_by_email = "terraform-city-crimes@city-crimes.iam.gserviceaccount.com"
   }
   access {
     role          = "OWNER"
@@ -92,10 +92,10 @@ resource "google_bigquery_dataset" "prod" {
   }
   # access {
   #     role          = "OWNER"
-  #     user_by_email = "airflow-service@denzoom.iam.gserviceaccount.com"
+  #     user_by_email = "airflow-city-crimes@city-crimes.iam.gserviceaccount.com"
   # }
   access {
     role          = "OWNER"
-    user_by_email = "dbt-service@denzoom.iam.gserviceaccount.com"
+    user_by_email = "dbt-city-crimes@city-crimes.iam.gserviceaccount.com"
   }
 }
