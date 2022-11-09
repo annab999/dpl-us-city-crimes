@@ -52,5 +52,5 @@ WORKDIR "${FILES_HOME}"
 
 CMD "${SPARK_HOME}/sbin/start-master.sh" --host "${SPARK_MASTER_HOSTNAME}" \
     && "${SPARK_HOME}/sbin/start-worker.sh" "spark://${SPARK_MASTER_HOSTNAME}:7077" \
-        --cores 2 --memory 7G \
+        --cores 1 --memory 2G \
     && jupyter notebook --ip=0.0.0.0 --no-browser

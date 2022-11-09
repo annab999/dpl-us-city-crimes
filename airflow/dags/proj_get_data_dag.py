@@ -16,7 +16,7 @@ from task_functions import parse_py, parse_bash
 a_home = os.getenv('AIRFLOW_HOME')
 def_args = {
     "owner": "airflow",
-    "depends_on_past": False,
+    "depends_on_past": True,
     "retries": 3
 }
 

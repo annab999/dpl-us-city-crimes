@@ -46,5 +46,5 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 CMD "${SPARK_HOME}/sbin/start-worker.sh" "spark://${SPARK_MASTER_HOSTNAME}:7077" \
-        --cores 2 --memory 7G \
+        --cores 2 --memory 3G \
     && tail -f /dev/null
