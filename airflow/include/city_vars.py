@@ -182,7 +182,7 @@ dict_austin = {
     'with_year_col': False,
     'csv_parts': 1,
     'pq_parts': 1,
-    'selected_cols': [],
+    'selected_cols': ['go_primary_key', 'timestamp', 'go_report_date', 'city', 'go_location', 'go_highest_offense_desc', 'highest_nibrs/ucr_offense_description', 'clearance_status', 'go_district'],
     'parser': parse_aus,
     'p_ret_type': types.StringType(),
     'p_orig_col': '',

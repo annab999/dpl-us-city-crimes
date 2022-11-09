@@ -39,7 +39,8 @@ with DAG(
     tags = ['project', 'TEST']
 ) as dag:
 
-    cities = ['Chicago', 'San Francisco', 'Los Angeles', 'Austin']
+    # cities = ['Chicago', 'San Francisco', 'Los Angeles', 'Austin']
+    cities = ['Chicago', 'Los Angeles', 'Austin']
     f_cities = [city.replace(' ', '_').lower() for city in cities]
     
     with TaskGroup(group_id = 'files_tg') as tg1:
@@ -73,11 +74,11 @@ with DAG(
                 task_id = f'list_fpaths_{city}',
                 bucket = '{{ gs_bkt | no_gs }}',  # UPDATE ME IN PROD
                 gcp_conn_id = 'google_cloud_test',
-                prefix = f'raw/{city}/',
+                prefix = f'raw/csv/{city}/',
                 delimiter = "{{ 'in' | fmt }}"
             )
 
-            args_with_fpaths = list_fpaths.output.map(lambda fpath: [fpath, 'pq/uncat/'])
+            args_with_fpaths = list_fpaths.output.map(lambda fpath: [fpath, 'raw/pq/'])
             parquetize_data = SparkSubmitOperator \
                 .partial(
                     task_id = f'parquetize_data_{city}',
