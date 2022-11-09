@@ -73,7 +73,7 @@ with DAG(
             list_fpaths = GCSListObjectsOperator(
                 task_id = f'list_fpaths_{city}',
                 bucket = '{{ gs_bkt | no_gs }}',  # UPDATE ME IN PROD
-                gcp_conn_id = 'google_cloud_test',
+                gcp_conn_id = 'google_cloud_default',
                 prefix = f'raw/csv/{city}/',
                 delimiter = "{{ 'in' | fmt }}"
             )
@@ -83,7 +83,7 @@ with DAG(
                 .partial(
                     task_id = f'parquetize_data_{city}',
                     application = '{{ include_dir }}/proj_csv_convert.py',
-                    conn_id = 'project_spark',        # not templated
+                    conn_id = 'spark_default',        # not templated
                     name = '{{ task.task_id }}',
                     py_files = '{{ include_dir }}/city_vars.py',
                     jars = '{{ jar_path }}',
@@ -99,7 +99,7 @@ with DAG(
                 .partial(
                     task_id = f'clean_data_{city}',
                     application = '{{ include_dir }}/proj_pq_read.py',
-                    conn_id = 'project_spark',        # not templated
+                    conn_id = 'spark_default',        # not templated
                     name = '{{ task.task_id }}',
                     py_files = '{{ include_dir }}/city_vars.py',
                     jars = '{{ jar_path }}',

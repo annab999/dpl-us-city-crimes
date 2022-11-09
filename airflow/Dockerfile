@@ -10,7 +10,7 @@ USER root
 ARG AIRFLOW_USER
 ARG INSTALL_DIR
 ARG JDK_FILE=openjdk-17.0.2_linux-x64_bin.tar.gz
-ARG CLOUD_SDK_VERSION=407.0.0
+ARG CLOUD_SDK_VERSION=409.0.0
 
 ENV JAR_FILE_LOC=https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar
 ENV AIRFLOW_HOME=${INSTALL_DIR}/airflow
@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -qq vim procps \
     && apt-get autoremove -qq --purge && apt-get clean \
     # git gcc g++ -qqq \
     && JDK_URL=https://download.java.net/java/GA/jdk17.0.2/dfd4a8d0985749f896bed50d7138ee7f/8/GPL/${JDK_FILE} \
-    && GCLOUD_URL="https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz" \
+    && GCLOUD_URL=https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz \
     && TMP_DIR="$(mktemp -d)" \
     # install Java
     && curl -fL "${JDK_URL}" --output "${TMP_DIR}"/${JDK_FILE} \
