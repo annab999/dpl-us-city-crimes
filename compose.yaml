@@ -56,7 +56,8 @@ x-airflow-common:
     GOOGLE_APPLICATION_CREDENTIALS: /.google/credentials/${AIRFLOW_CREDS}
     AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT: 'google-cloud-platform://?extra__google_cloud_platform__key_path=%2F.google%2Fcredentials%2F${AIRFLOW_CREDS}&extra__google_cloud_platform__project=${GCP_PROJ}'
     AIRFLOW_CONN_SPARK_DEFAULT: '{"conn_type": "spark", "host": "spark://${SPARK_HOSTNAME}", "port": 7077}'
-    SPARK_CREDENTIALS: /.google/credentials/${SPARK_CREDS} 
+    SPARK_CREDENTIALS: /.google/credentials/${SPARK_CREDS}
+    AIRFLOW_CONN_DBT_CLOUD_DEFAULT: 'dbt-cloud://${DBT_ACCOUNT_ID}:${DBT_TOKEN}@'
   volumes:
     - ${AIRFLOW_HOST}/dags:${INSTALL_LOC}/airflow/dags
     - ${AIRFLOW_HOST}/logs:${INSTALL_LOC}/airflow/logs

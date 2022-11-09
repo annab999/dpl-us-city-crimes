@@ -21,9 +21,10 @@ The apps and software used by the project:
 | container | Debian 11 | OpenJDK | 17.0.2 | for spark-submit |
 | container | Debian 11 | Apache Airflow | 2.4.2 | with CeleryExecutor |
 | container | Debian 11 | Anaconda | 4.12 | for Jupyter (dev) |
-| container | Debian 11 | Python | 3.9.12 | for Spark |
-| container | Debian 11 | OpenJDK | 17.0.2 | for Spark |
-| container | Debian 11 | Apache Spark | 3.3.1 |  |
+| container | Debian 11 | Python | 3.9.15 | for Spark worker |
+| container | Debian 11 | Python | 3.9.12 | for Spark and worker |
+| container | Debian 11 | OpenJDK | 17.0.2 | for Spark and worker |
+| container | Debian 11 | Apache Spark | 3.3.1 | for Spark and worker |
 | cloud | - | BigQuery | - | managed |
 | cloud | - | dbt | 1.3.0 | managed |
 | cloud | - | Google Looker Studio | - | managed |
@@ -34,16 +35,20 @@ The apps and software used by the project:
    - Airflow: *Bigquery Admin, Storage Admin, Storage Object Admin, Viewer*
    - Spark: *Storage Admin, Storage Object Admin, Viewer*
    - dbt: *BigQuery Data Editor, BigQuery Job User, BigQuery User, BigQuery Data Viewer*
-3. Set up your Docker host machine / workstation.
+3. Set up your dbt Cloud account. Create a service account API token for Airflow with the role `Job Admin` and the project for this specified.
+4. Set up your Docker host machine / workstation.
    - The following are required:
      - Linux OS
+     - Docker Engine, Docker Compose plugin
      - at least 15GB of available disk space
      - a user with sufficient rights to run Docker, write stuff
    - Copy the following there:
      - this folder
-     - service account JSON keys
-4. Edit [.env](./.env) with your GCP details and `CREDS` (JSON) locations. Run `id -u` and use the output as value to `AIRFLOW_UID`.
-5. Connect and log on to your host machine. Then, edit and run the following:
+     - your service account JSON keys
+5. Edit [.env](./.env) with your GCP details and `CREDS` (JSON) locations. Run `id -u` and use the output as value to `AIRFLOW_UID`.
+6. Connect and log on to your host machine. As this implementation uses gcloud SDK/CLI in some step, ensure that your machine is authenticated with GCP.
+   - If using a Compute Engine VM, ensure machine has a service account attached, and the following API scopes enabled (at least): *BigQuery, Cloud Storage*
+7. Modify and run the following:
    ```
    ### start docker service to be sure
    $ systemctl start docker
@@ -56,10 +61,10 @@ The apps and software used by the project:
    ### start up Airflow and Spark services
    $ docker compose up
    ```
-6. Access Airflow via `https://<docker-host-address>:8080` with default `airflow/airflow`. Spark master GUI is also accessible at `https://<docker-host-address>:8081`.
-7. Trigger `proj_get_data_dag` and wait to finish
-8. Trigger `proj_process_data_dag` and wait to finish
-9. <GLS page>
+8. Access Airflow via `https://<docker-host-address>:8080` with default `airflow/airflow`. Spark master GUI is also accessible at `https://<docker-host-address>:8081`.
+9. Trigger `proj_get_data_dag` and wait to finish
+10. Trigger `proj_process_data_dag` and wait to finish
+11. <GLS page>
 
 ## Development Issues
 Here are the issues I encountered in setting up the project.
@@ -511,6 +516,64 @@ But when I create the connection via GUI and set the `host` field value to be `s
   Looking back at the code snippet in question, seems it parses the string before the `:` character even *after* parsing with the `@` involved (maybe `if ":" in hostname:` should be an `elif`?)
 - **(Ironic) Resolution**: Use a JSON input (instead of URI) to the connection env var, which is **exactly what I've been avoiding** the whole time as [the docs recommended a URI syntax](https://airflow.apache.org/docs/apache-airflow-providers-apache-spark/stable/connections/spark.html#howto-connection-spark))
 
+### [GCP] gcloud CLI no longer working from Airflow task
+gcloud CLI used in streaming transfers of raw CSV files. Output is:
+```
+[2022-11-09, 06:35:51 UTC] {subprocess.py:75} INFO - Running command: ['/bin/bash', '-c', 'curl https://data.austintexas.gov/api/views/8iue-zpf6/rows.csv?accessType=DOWNLOAD | gcloud storage cp - $gs/raw/csv/$name/2016_Annual_Crime_Data$ext']
+...
+[2022-11-09, 06:35:56 UTC] {subprocess.py:93} INFO - ERROR: (gcloud.storage.cp) You do not currently have an active account selected.
+[2022-11-09, 06:35:56 UTC] {subprocess.py:93} INFO - Please run:
+[2022-11-09, 06:35:56 UTC] {subprocess.py:93} INFO - 
+[2022-11-09, 06:35:56 UTC] {subprocess.py:93} INFO -   $ gcloud auth login
+[2022-11-09, 06:35:56 UTC] {subprocess.py:93} INFO - 
+[2022-11-09, 06:35:56 UTC] {subprocess.py:93} INFO - to obtain new credentials.
+[2022-11-09, 06:35:56 UTC] {subprocess.py:93} INFO - 
+[2022-11-09, 06:35:56 UTC] {subprocess.py:93} INFO - If you have already logged in with a different account:
+[2022-11-09, 06:35:56 UTC] {subprocess.py:93} INFO - 
+[2022-11-09, 06:35:56 UTC] {subprocess.py:93} INFO -     $ gcloud config set account ACCOUNT
+[2022-11-09, 06:35:56 UTC] {subprocess.py:93} INFO - 
+[2022-11-09, 06:35:56 UTC] {subprocess.py:93} INFO - to select an already authenticated account to use.
+```
+- **Observations**: Tried the following to no avail:
+  - `gcloud auth login` from host machine - because I distinctly remember not having to setup anything for gcloud authentication in previous Airflow containers
+  - `gcloud auth application-default login` from host machine
+  - `gcloud auth activate-service-account` as `compose.yaml` default `command` for `airflow-worker` container - encountered permissions error:
+    ```
+    city-crimes-airflow-worker-1     | WARNING: Could not setup log file in /.config/gcloud/logs, (Error: Could not create directory [/.config/gcloud/logs/2022.11.08]: Permission denied.
+    city-crimes-airflow-worker-1     |
+    city-crimes-airflow-worker-1     | Please verify that you have permissions to write to the parent directory..
+    city-crimes-airflow-worker-1     | The configuration directory may not be writable. To learn more, see https://cloud.google.com/sdk/docs/configurations#creating_a_configuration
+    city-crimes-airflow-worker-1     | ERROR: (gcloud.auth.activate-service-account) Could not create directory [/.config/gcloud]: Permission denied.
+    city-crimes-airflow-worker-1     |
+    city-crimes-airflow-worker-1     | Please verify that you have permissions to write to the parent directory.
+    ```
+    - notes: manually executing command on running container *works*
+      - running user `id` in script: `uid=1108935039 gid=0(root) groups=0(root)`
+      - running user `id` in container when `exec`-ing: `uid=1108935039(default) gid=0(root) groups=0(root)`
+    - `su` (), `sudo` (not listed in passwd)
+    - `gosu` (operation not permitted) as `airflow` user - which is what is used by `airflow-init` in its default `command`
+  - modify `AIRFLOW_UID` and `AIRFLOW_USER` `ARG` in Dockerfile and compose
+  - fresh setup trial
+
+- **Resolution**: Set up service account and API scopes for VM. Apparently, this is no longer automatically assigned on creation?
+
+### [Airflow] Scheduler dying issues
+This shows at the top of the webserver GUI:
+```
+The scheduler does not appear to be running. Last heartbeat was received 1 minute ago. The DAGs list may not update, and new tasks will not be scheduled.
+```
+
+- **Observations**: This started happening with `clean_data` task runs (1st time) + new additional Spark worker container + new GCP project setup. Scheduled task instances run fine even with this happening, but it's alarming how the Airflow Scheduler goes into an *unhealthy* state when this happens.
+
+  Tweaked the memory and CPU core allocations for Spark workers, also went ahead and disabled the extra worker. Searched around but it seemed to confirm that it's a resource issue. Tried to check for settings I could tweak on the Scheduler side (will have to read more on its inner workings and cycles), but there doesn't *seem* to be a direct fix.
+  Tried the resolution below, and it almost totally worked. "Almost" because the alert doesn't appear as early as it did before, but because of my long `clean_data_los_angeles` tasks, it'll still come up later once busy with those tasks.
+
+  Interesting but intuitive observation: allocating low CPU for the Spark (single) worker also helps, but that's only because it takes longer to process stuff and reach the long task during which the Scheduler dies, and not necessarily because it got the resources it needed.
+  
+  In the end, I re-enabled the extra Spark worker to process everything faster. Disabling the tedious tasks for LA for now, at least after I was able to get some sample of processed data.
+
+- Somewhat **Resolution**: Set `depends_on_past` to True to alleviate the stress on the Scheduler. Also set quicker-to-process tasks if possible to totally avoid this issue
+
 ### [Service] Template
 
 - **Observations**: Stuff
@@ -533,6 +596,7 @@ But when I create the connection via GUI and set the `host` field value to be `s
 - use task decorators, task branching
 - https://stackoverflow.com/questions/7194939/git-change-one-line-in-file-for-the-complete-history
 - slim-airflow branch - next step: separate ROOT and AIRFLOW_USER installs (apt-get, pip)
+- chi 2014 2016 2019: `ValueError: String does not match format MM/DD/YYYY hh:mm:ss A`
 
 ### Before running prod
 - update airflow .env bucket
