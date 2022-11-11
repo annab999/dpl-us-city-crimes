@@ -13,17 +13,16 @@ from pyspark.sql import functions as F
 
 import os
 import argparse
-import pandas as pd
 
-from city_vars import dict_cities
+from city_vars import dict_cities, dict_common
 
 # inputs
 parser = argparse.ArgumentParser(description = 'Read monthly Parquets, clean and choose columns, combine cities per month.')
 parser.add_argument('city_proper',
     choices = ['Chicago', 'San Francisco', 'Los Angeles', 'Austin'],
     help = 'specify 1 of the 4 cities for its corresponding template')
-parser.add_argument('year', help = 'year of data to use')
-parser.add_argument('zmonth', help = 'zero-padded month of data to use')
+parser.add_argument('year', help = 'year of data to use, in YYYY format')
+parser.add_argument('zmonth', help = 'zero-padded month of data to use, in 0m format')
 args = parser.parse_args()
 
 # parsed inputs
@@ -48,17 +47,24 @@ spark = SparkSession.builder \
     .config(conf=sc.getConf()) \
     .getOrCreate()
 
-df_pq = spark.read.parquet(f"{gs_bkt}/pq/from_raw/{dict_city['formatted']}/{year}/{zmonth}")
+df_pq = spark.read.parquet(f"{gs_bkt}/pq/{dict_city['formatted']}/{year}/{zmonth}")
 
+# standardize column names
+o_cols = dict_city['ordered_cols']
+cols = dict_city['renamed_cols']
+for i in range(len(o_cols)):
+    df_order = df_order.withColumnRenamed(o_cols[i], cols[i])
+
+# parse relevant columns
 parser_udf = F.udf(dict_city['parser'], returnType=dict_cities['p_ret_type'])
 
 # filter out duplicates
 # parse some columns
 # pick out important columns
-df_select = df_pq \
+df_order = df_pq \
     .distinct() \
-    .select(dict_city['selected_cols']) \
-    .withColumn(dict_city['p_new_col'], parser_udf(dict_city['p_orig_col'])) \
-    .withColumn('city', F.lit(city_proper))
+    .withColumn('city', F.lit(city_proper)) \
+    .withColumn(dict_city['p_col'], parser_udf('street') \
+    .select(dict_common['minimal'])
 
 df_select.write.parquet(f"{gs_bkt}/pq/clean/{dict_cities['formatted']}/{year}/{zmonth}/", mode='overwrite')

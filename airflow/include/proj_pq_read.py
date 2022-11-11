@@ -51,6 +51,7 @@ df_in = spark.read.parquet(f'{gs_bkt}/{in_path}/*')
 
 # filter out rows with null values in important columns
 # parse datetime from provided date column of specific format
+# drop old date col
 p_func = lambda s: pdl.from_format(s, dict_city['date_format'])
 parse_dt_udf = F.udf(p_func, returnType=types.TimestampType())
 
@@ -74,7 +75,9 @@ years_rows = years_rows \
 years = [row.Year for row in years_rows]
 years.sort()
 
-# write to parquet
+# clean col names
+# repartition if needed
+# write to per-month parquet
 o_cols = df_time.columns
 cols = [col.lower().replace(' ', '_') for col in o_cols]
 for year in years:

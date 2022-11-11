@@ -15,21 +15,26 @@ def parse_chi(block):
     for part in split[3:]:
         street += f' {part}'
     return street
-def parse_san():
+
+def parse_los(location):
     """
-    parse  from San Francisco given
+    parse street from LA given block of format 'NNN D STREET ST .. (usually)'
     """
-    pass
-def parse_los():
+    split = location.split()
+    for i in range(len(split)):
+        if split[i] in ['N', 'E', 'W', 'S']:
+            return split[i+1:]
+    for i in range(len(split)):
+        if split[i].isdigit():
+            return split[i+1:]
+    return split[-1:]
+
+def parse_aus(go_location):
     """
-    parse  from Los Angeles given
+    parse street from Austin given block of format 'NNN STREET ST .. (usually)'
     """
-    pass
-def parse_aus():
-    """
-    parse  from Austin given
-    """
-    pass
+    go_location = go_location.replace(' NB', '').replace(' EB', '').replace(' WB', '').replace(' SB', '').replace(' SVRD', '')
+    return parse_los(go_location)
 
 dict_chicago = {
     'formatted': f_cities[0],
@@ -82,11 +87,10 @@ dict_chicago = {
     'with_year_col': True,
     'csv_parts': 1,
     'pq_parts': 2,
-    'selected_cols': ['case_number', 'timestamp', 'city', 'street', 'primary_type', 'description', 'location_description', 'arrest', 'domestic', 'beat', 'latitude', 'longitude'],
+    'ordered_cols': ['case_number', 'timestamp', 'block', 'primary_type', 'description', 'arrest', 'beat', 'location_description', 'latitude', 'longitude', 'domestic'],
+    'renamed_cols': ['id', 'timestamp', 'street', 'type', 'description', 'status', 'area', 'location', 'latitude', 'longitude', 'domestic'],
     'parser': parse_chi,
-    'p_ret_type': types.StringType(),
-    'p_orig_col': 'block',
-    'p_new_col': 'street'
+    'p_ret_type': types.StringType()
 }
 
 dict_san_francisco = {
@@ -133,11 +137,9 @@ dict_san_francisco = {
     'with_year_col': False,
     'csv_parts': 8,
     'pq_parts': 12,
-    'selected_cols': [],
+    'renamed_cols': [],
     'parser': parse_san,
-    'p_ret_type': types.StringType(),
-    'p_orig_col': '',
-    'p_new_col': ''
+    'p_ret_type': types.StringType()
 }
 
 dict_los_angeles = {
@@ -177,11 +179,10 @@ dict_los_angeles = {
     'with_year_col': False,
     'csv_parts': 7,
     'pq_parts': 24,
-    'selected_cols': ['dr_no', 'timestamp', 'time_occ', 'city', 'location', 'cross_street', 'crm_cd_desc', 'premis_desc', 'status_desc', 'weapon_desc', 'vict_age', 'vict_sex', 'vict_descent', 'rpt_dist_no', 'lat', 'lon'],
+    'ordered_cols': ['dr_no', 'timestamp', 'location', 'crm_cd_desc', 'crm_cd_desc', 'status_desc', 'rpt_dist_no', 'premis_desc', 'lat', 'lon', 'weapon_desc', 'vict_age', 'vict_sex', 'vict_descent'],
+    'renamed_cols': ['id', 'timestamp', 'street', 'type', 'description', 'status', 'area', 'location', 'latitude', 'longitude', 'weapon_desc', 'vict_age', 'vict_sex', 'vict_descent'],
     'parser': parse_los,
-    'p_ret_type': types.StringType(),
-    'p_orig_col': '',
-    'p_new_col': ''
+    'p_ret_type': types.StringType()
 }
 
 dict_austin = {
@@ -206,11 +207,10 @@ dict_austin = {
     'with_year_col': False,
     'csv_parts': 1,
     'pq_parts': 1,
-    'selected_cols': ['go_primary_key', 'timestamp', 'go_report_date', 'city', 'go_location', 'go_highest_offense_desc', 'highest_nibrs/ucr_offense_description', 'clearance_status', 'go_district'],
+    'ordered_cols': ['go_primary_key', 'timestamp', 'go_location', 'highest_nibrs/ucr_offense_description', 'go_highest_offense_desc', 'clearance_status', 'go_district'],
+    'renamed_cols': ['id', 'timestamp', 'street', 'type', 'description', 'status', 'area'],
     'parser': parse_aus,
-    'p_ret_type': types.StringType(),
-    'p_orig_col': '',
-    'p_new_col': ''
+    'p_ret_type': types.StringType()
 }
 
 dict_cities = {
@@ -218,6 +218,11 @@ dict_cities = {
     cities[1]: dict_san_francisco,
     cities[2]: dict_los_angeles,
     cities[3]: dict_austin
+}
+
+dict_common = {
+    'minimal': ['id', 'timestamp', 'city', 'street', 'type', 'description', 'status', 'area'],
+    'extra': ['location', 'latitude', 'longitude', 'domestic', 'weapon_desc', 'vict_age', 'vict_sex', 'vict_descent']
 }
 
 def selector(dict_city, item, input):
