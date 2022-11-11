@@ -5,6 +5,7 @@ from airflow.operators.python import PythonOperator
 
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
 from airflow.providers.google.cloud.operators.gcs import GCSListObjectsOperator
+from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateEmptyDatasetOperator
 
 import pendulum as pdl
 import os
@@ -114,5 +115,16 @@ with DAG(
                 .expand(application_args = args_with_fpaths)
 
             list_fpaths >> parquetize_data >> clean_data
+    
+    create_dset = BigQueryCreateEmptyDatasetOperator(
+        task_id = f'create_dset',
+        dataset_id = os.getenv('INIT_DATASET'),
+        location = os.getenv('GCP_LOCATION'),
+        dataset_reference = {
+            "friendlyName": f"{dataset.replace('_', ' ').title()}",
+            "description": "Cleaned crime report data converted to Parquet from CSV"
+        },
+        exists_ok = True
+    )
 
-    tg1 >> tg2
+    tg1 >> tg2 >> create_dset

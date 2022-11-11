@@ -596,6 +596,7 @@ The scheduler does not appear to be running. Last heartbeat was received 1 minut
 - use task decorators, task branching
 - https://stackoverflow.com/questions/7194939/git-change-one-line-in-file-for-the-complete-history
 - slim-airflow branch - next step: separate ROOT and AIRFLOW_USER installs (apt-get, pip)
+- LA `time_occ`, `cross_street` columns
 
 ### Before running prod
 - update airflow .env bucket
