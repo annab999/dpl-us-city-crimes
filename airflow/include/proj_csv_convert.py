@@ -16,7 +16,7 @@ import os
 import argparse
 import pendulum as pdl
 
-from city_vars import dict_cities
+from city_vars import dict_cities, selector
 
 # inputs
 parser = argparse.ArgumentParser(description = 'Read CSV file into Spark and write to Parquet.')
@@ -49,7 +49,7 @@ spark = SparkSession.builder \
 
 df_csv = spark.read \
     .option("header", "true") \
-    .schema(dict_city['schema_template']) \
+    .schema(selector(dict_city, 'schema', csv_fpath)) \
     .csv(f'{gs_bkt}/{csv_fpath}')
 
 # repartitioning for large files

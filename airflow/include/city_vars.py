@@ -33,7 +33,7 @@ def parse_aus():
 
 dict_chicago = {
     'formatted': f_cities[0],
-    'schema_template': types.StructType([               # modified pattern from pandas schema
+    'schema_template1': types.StructType([               # modified pattern from pandas schema
         types.StructField('Case Number', types.StringType(), True),
         types.StructField('Date', types.StringType(), True),
         types.StructField('Block', types.StringType(), True),
@@ -53,6 +53,30 @@ dict_chicago = {
         types.StructField('Longitude', types.FloatType(), True),
         types.StructField('Location', types.StringType(), True)
     ]),
+    'schema_template2': types.StructType([
+        types.StructField('ID', types.IntegerType(), True),
+        types.StructField('Case Number', types.StringType(), True),
+        types.StructField('Date', types.StringType(), True),
+        types.StructField('Block', types.StringType(), True),
+        types.StructField('IUCR', types.StringType(), True),
+        types.StructField('Primary Type', types.StringType(), True),
+        types.StructField('Description', types.StringType(), True),
+        types.StructField('Location Description', types.StringType(), True),
+        types.StructField('Arrest', types.BooleanType(), True),
+        types.StructField('Domestic', types.BooleanType(), True),
+        types.StructField('Beat', types.StringType(), True),
+        types.StructField('District', types.StringType(), True),
+        types.StructField('Ward', types.IntegerType(), True),
+        types.StructField('Community Area', types.IntegerType(), True),
+        types.StructField('FBI Code', types.StringType(), True),
+        types.StructField('X Coordinate', types.FloatType(), True),
+        types.StructField('Y Coordinate', types.FloatType(), True),
+        types.StructField('Year', types.IntegerType(), True),
+        types.StructField('Updated On', types.TimestampType(), True),
+        types.StructField('Latitude', types.FloatType(), True),
+        types.StructField('Longitude', types.FloatType(), True),
+        types.StructField('Location', types.StringType(), True)
+    ]),
     'date_format': 'MM/DD/YYYY hh:mm:ss A',
     'date_string_col': 'Date',
     'with_year_col': True,
@@ -67,7 +91,7 @@ dict_chicago = {
 
 dict_san_francisco = {
     'formatted': f_cities[1],
-    'schema_template': types.StructType([
+    'schema_template1': types.StructType([
         types.StructField('PdId', types.LongType(), True),
         types.StructField('IncidntNum', types.IntegerType(), True),
         types.StructField('Incident Code', types.IntegerType(), True),
@@ -195,3 +219,18 @@ dict_cities = {
     cities[2]: dict_los_angeles,
     cities[3]: dict_austin
 }
+
+def selector(dict_city, item, input):
+    if item == 'schema':
+        if dict_city['formatted'] == f_cities[0]:           # Chicago
+            if any(str(year) in input for year in range(2003, 2011)):
+                return dict_city['schema_template1']
+            else:
+                return dict_city['schema_template2']
+        elif dict_city['formatted'] == f_cities[1]:         # SF
+            if 'Present' not in input:
+                return dict_city['schema_template1']
+            else:
+                return dict_city['schema_template2']
+        else:                                               # LA, Austin
+            return dict_city['schema_template']
