@@ -53,18 +53,20 @@ df_pq = spark.read.parquet(f"{gs_bkt}/pq/{dict_city['formatted']}/{year}/{zmonth
 o_cols = dict_city['ordered_cols']
 cols = dict_city['renamed_cols']
 for i in range(len(o_cols)):
-    df_order = df_order.withColumnRenamed(o_cols[i], cols[i])
+    df_pq = df_pq.withColumnRenamed(o_cols[i], cols[i])
 
 # parse relevant columns
-parser_udf = F.udf(dict_city['parser'], returnType=dict_cities['p_ret_type'])
+parser_udf = F.udf(dict_city['parser'], returnType=dict_common['p_ret_type'])
 
 # filter out duplicates
 # parse some columns
 # pick out important columns
-df_order = df_pq \
+df_select = df_pq \
     .distinct() \
     .withColumn('city', F.lit(city_proper)) \
-    .withColumn(dict_city['p_col'], parser_udf('street') \
+    .withColumn(dict_common['p_col'], parser_udf(F.col(dict_common['p_col']))) \
+    .withColumn('UNK', F.lit('UNKNOWN')) \
+    .withColumn(dict_city['new_col'], F.col(dict_city['new_val_from'])) \
     .select(dict_common['minimal'])
 
-df_select.write.parquet(f"{gs_bkt}/pq/clean/{dict_cities['formatted']}/{year}/{zmonth}/", mode='overwrite')
+df_select.write.parquet(f"{gs_bkt}/clean/{dict_city['formatted']}/{year}/{zmonth}", mode='overwrite')

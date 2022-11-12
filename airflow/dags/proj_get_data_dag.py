@@ -15,6 +15,8 @@ from task_functions import parse_py, parse_bash
 # proj = os.getenv('GCP_PROJECT_ID')
 # gs_bkt = 'gs://' + proj + '-project'
 a_home = os.getenv('AIRFLOW_HOME')
+dset = os.getenv('INIT_DATASET')
+loc = os.getenv('GCP_LOC')
 def_args = {
     "owner": "airflow",
     "depends_on_past": True,
@@ -118,12 +120,8 @@ with DAG(
     
     create_dset = BigQueryCreateEmptyDatasetOperator(
         task_id = f'create_dset',
-        dataset_id = os.getenv('INIT_DATASET'),
-        location = os.getenv('GCP_LOCATION'),
-        dataset_reference = {
-            "friendlyName": f"{dataset.replace('_', ' ').title()}",
-            "description": "Cleaned crime report data converted to Parquet from CSV"
-        },
+        dataset_id = dset,
+        location = loc,
         exists_ok = True
     )
 
