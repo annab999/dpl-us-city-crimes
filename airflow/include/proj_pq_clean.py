@@ -50,10 +50,13 @@ spark = SparkSession.builder \
 df_pq = spark.read.parquet(f"{gs_bkt}/pq/{dict_city['formatted']}/{year}/{zmonth}")
 
 # standardize column names
+# select columns to remove any similarly named columns
 o_cols = dict_city['ordered_cols']
 cols = dict_city['renamed_cols']
+df_ordered = df_pq.select(o_cols)
 for i in range(len(o_cols)):
-    df_pq = df_pq.withColumnRenamed(o_cols[i], cols[i])
+    df_ordered = df_ordered \
+        .withColumnRenamed(o_cols[i], cols[i])
 
 # parse relevant columns
 parser_udf = F.udf(dict_city['parser'], returnType=dict_common['p_ret_type'])
@@ -61,7 +64,7 @@ parser_udf = F.udf(dict_city['parser'], returnType=dict_common['p_ret_type'])
 # filter out duplicates
 # parse some columns
 # pick out important columns
-df_select = df_pq \
+df_select = df_ordered \
     .distinct() \
     .withColumn('city', F.lit(city_proper)) \
     .withColumn(dict_common['p_col'], parser_udf(F.col(dict_common['p_col']))) \

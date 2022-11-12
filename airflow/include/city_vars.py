@@ -12,8 +12,13 @@ def parse_chi(block):
     """
     split = block.split()
     street = split[2]
-    for part in split[3:]:
-        street += f' {part}'
+#    if len(split) > 2:             # temporary workaround to weird IndexError: list index out of range for street = split[2]
+#        street = split[2]
+#    else:
+#        return block
+    if len(split) > 3:
+        for part in split[3:]:
+            street += f' {part}'
     return street
 
 def parse_los(location):
@@ -90,7 +95,8 @@ dict_chicago = {
     'ordered_cols': ['case_number', 'timestamp', 'block', 'primary_type', 'description', 'arrest', 'beat', 'location_description', 'latitude', 'longitude', 'domestic'],
     'renamed_cols': ['id', 'timestamp', 'street', 'type', 'description', 'status', 'area', 'location', 'latitude', 'longitude', 'domestic'],
     'parser': parse_chi,
-    'p_ret_type': types.StringType()
+    'new_col': 'victim_age',
+    'new_val_from': 'UNK'
 }
 
 dict_san_francisco = {
@@ -137,9 +143,7 @@ dict_san_francisco = {
     'with_year_col': False,
     'csv_parts': 8,
     'pq_parts': 12,
-    'renamed_cols': [],
-    'parser': parse_san,
-    'p_ret_type': types.StringType()
+    'renamed_cols': []
 }
 
 dict_los_angeles = {
@@ -179,10 +183,11 @@ dict_los_angeles = {
     'with_year_col': False,
     'csv_parts': 7,
     'pq_parts': 24,
-    'ordered_cols': ['dr_no', 'timestamp', 'location', 'crm_cd_desc', 'crm_cd_desc', 'status_desc', 'rpt_dist_no', 'premis_desc', 'lat', 'lon', 'weapon_desc', 'vict_age', 'vict_sex', 'vict_descent'],
-    'renamed_cols': ['id', 'timestamp', 'street', 'type', 'description', 'status', 'area', 'location', 'latitude', 'longitude', 'weapon_desc', 'vict_age', 'vict_sex', 'vict_descent'],
+    'ordered_cols': ['dr_no', 'timestamp', 'location', 'crm_cd_desc', 'status_desc', 'rpt_dist_no', 'premis_desc', 'lat', 'lon', 'weapon_desc', 'vict_age', 'vict_sex', 'vict_descent'],
+    'renamed_cols': ['id', 'timestamp', 'street', 'description', 'status', 'area', 'location', 'latitude', 'longitude', 'weapon', 'victim_age', 'victim_sex', 'victim_descent'],
     'parser': parse_los,
-    'p_ret_type': types.StringType()
+    'new_col': 'type',
+    'new_val_from': 'description'
 }
 
 dict_austin = {
@@ -210,7 +215,8 @@ dict_austin = {
     'ordered_cols': ['go_primary_key', 'timestamp', 'go_location', 'highest_nibrs/ucr_offense_description', 'go_highest_offense_desc', 'clearance_status', 'go_district'],
     'renamed_cols': ['id', 'timestamp', 'street', 'type', 'description', 'status', 'area'],
     'parser': parse_aus,
-    'p_ret_type': types.StringType()
+    'new_col': 'victim_age',
+    'new_val_from': 'UNK'
 }
 
 dict_cities = {
@@ -221,8 +227,10 @@ dict_cities = {
 }
 
 dict_common = {
-    'minimal': ['id', 'timestamp', 'city', 'street', 'type', 'description', 'status', 'area'],
-    'extra': ['location', 'latitude', 'longitude', 'domestic', 'weapon_desc', 'vict_age', 'vict_sex', 'vict_descent']
+    'p_ret_type': types.StringType(),
+    'p_col': 'street',
+    'minimal': ['id', 'timestamp', 'city', 'street', 'type', 'description', 'status', 'area', 'victim_age'],
+    'extra': ['location', 'latitude', 'longitude', 'domestic', 'weapon', 'victim_sex', 'victim_descent']
 }
 
 def selector(dict_city, item, input):
