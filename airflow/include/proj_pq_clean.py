@@ -34,6 +34,8 @@ creds_path = os.getenv('SPARK_CREDENTIALS')
 
 # for city-specific data
 dict_city = dict_cities[city_proper]
+in_path = f"{os.getenv('PREFIX_ORGANIZED')}/{dict_city['formatted']}"
+out_path = f"{os.getenv('PREFIX_CLEAN')}/{dict_city['formatted']}"
 
 # connect to GCS
 sc = SparkContext(conf=SparkConf())
@@ -47,7 +49,7 @@ spark = SparkSession.builder \
     .config(conf=sc.getConf()) \
     .getOrCreate()
 
-df_pq = spark.read.parquet(f"{gs_bkt}/pq/{dict_city['formatted']}/{year}/{zmonth}")
+df_pq = spark.read.parquet(f"{gs_bkt}/{in_path}/{year}/{zmonth}")
 
 # standardize column names
 # select columns to remove any similarly named columns
@@ -72,4 +74,4 @@ df_select = df_ordered \
     .withColumn(dict_city['new_col'], F.col(dict_city['new_val_from'])) \
     .select(dict_common['minimal'])
 
-df_select.write.parquet(f"{gs_bkt}/clean/{dict_city['formatted']}/{year}/{zmonth}", mode='overwrite')
+df_select.write.parquet(f"{gs_bkt}/{out_path}/{year}/{zmonth}", mode='overwrite')

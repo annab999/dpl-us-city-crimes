@@ -8,7 +8,6 @@ import os
 
 # gs_bkt = 'gs://' + proj + '-project'
 a_home = os.getenv('AIRFLOW_HOME')
-gs_bkt = os.getenv('GCP_GCS_BUCKET')
 earliest_yr = 2001	# Chicago 2001 data, better to be automated
 earliest_mon = 1
 def_args = {
@@ -35,6 +34,8 @@ with DAG(
     # cities = ['Chicago', 'San Francisco', 'Los Angeles', 'Austin']
     cities = ['Chicago', 'Los Angeles', 'Austin']
     f_cities = [city.replace(' ', '_').lower() for city in cities]
+    gs_bkt = os.getenv('GCP_GCS_BUCKET')
+    prefix_org = os.getenv("PREFIX_ORGANIZED")
 
     for city in f_cities:
     
@@ -42,7 +43,7 @@ with DAG(
         gcs_object_exists = GCSObjectExistenceSensor(
             task_id = f'gcs_object_exists_{city}',
             bucket = gs_bkt.replace('gs://', ''),  # UPDATE ME IN PROD
-            object = f'pq/{city}/{year_mon}/_SUCCESS',
+            object = f'{prefix_org}/{city}/{year_mon}/_SUCCESS',
             timeout = 7,
             soft_fail = True,
             retries = 0

@@ -30,10 +30,11 @@ pq_dir = args.pq_dir
 city_proper = os.getenv('CITY_PROPER')
 gs_bkt = os.getenv('GCP_GCS_BUCKET')
 creds_path = os.getenv('SPARK_CREDENTIALS')
-in_path = csv_fpath.replace('raw/csv/', pq_dir).replace(os.getenv('IN_FMT'), '')
 
 # for city-specific data
 dict_city = dict_cities[city_proper]
+in_path = csv_fpath.replace(os.getenv("PREFIX_RAW"), pq_dir).replace(os.getenv('IN_FMT'), '')
+out_path = f"{os.getenv('PREFIX_ORGANIZED')}/{dict_city['formatted']}"
 
 # connect to GCS
 sc = SparkContext(conf=SparkConf())
@@ -89,4 +90,4 @@ for year in years:
         if dict_city['pq_parts'] > 1:
             df_month = df_month.repartition(dict_city['pq_parts'])
         df_month.write \
-            .parquet(f"{gs_bkt}/pq/{dict_city['formatted']}/{year}/{month:02}", mode='overwrite')
+            .parquet(f"{gs_bkt}/{out_path}/{year}/{month:02}", mode='overwrite')

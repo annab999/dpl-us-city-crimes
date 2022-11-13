@@ -59,6 +59,11 @@ x-airflow-common:
     AIRFLOW_CONN_SPARK_DEFAULT: '{"conn_type": "spark", "host": "spark://${SPARK_HOSTNAME}", "port": 7077}'
     SPARK_CREDENTIALS: /.google/credentials/${SPARK_CREDS}
     AIRFLOW_CONN_DBT_CLOUD_DEFAULT: 'dbt-cloud://${DBT_ACCOUNT_ID}:${DBT_TOKEN}@'
+    # GCS path prefixes
+    PREFIX_CSV: ${PATH_RAW}
+    PREFIX_CONVERTED: ${PATH_CONVERTED}
+    PREFIX_ORGANIZED: ${PATH_ORGANIZED}
+    PREFIX_CLEAN: ${PATH_CLEAN}
     # BigQuery info
     GCP_LOC: ${GCP_LOCATION}
     INIT_DATASET: ${INITIAL_DATASET}

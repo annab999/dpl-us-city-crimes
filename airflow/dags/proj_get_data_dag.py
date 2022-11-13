@@ -15,8 +15,6 @@ from task_functions import parse_py, parse_bash
 # proj = os.getenv('GCP_PROJECT_ID')
 # gs_bkt = 'gs://' + proj + '-project'
 a_home = os.getenv('AIRFLOW_HOME')
-dset = os.getenv('INIT_DATASET')
-loc = os.getenv('GCP_LOC')
 def_args = {
     "owner": "airflow",
     "depends_on_past": True,
@@ -45,6 +43,10 @@ with DAG(
     # cities = ['Chicago', 'San Francisco', 'Los Angeles', 'Austin']
     cities = ['Chicago', 'Los Angeles', 'Austin']
     f_cities = [city.replace(' ', '_').lower() for city in cities]
+    prefix_raw = os.getenv("PREFIX_RAW")
+    prefix_converted = os.getenv("PREFIX_CONVERTED")
+    dset = os.getenv('INIT_DATASET')
+    loc = os.getenv('GCP_LOC')
     
     with TaskGroup(group_id = 'files_tg') as tg1:
         for city in f_cities:
@@ -77,11 +79,11 @@ with DAG(
                 task_id = f'list_fpaths_{city}',
                 bucket = '{{ gs_bkt | no_gs }}',  # UPDATE ME IN PROD
                 gcp_conn_id = 'google_cloud_default',
-                prefix = f'raw/csv/{city}/',
+                prefix = f'{prefix_raw}/{city}/',
                 delimiter = "{{ 'in' | fmt }}"
             )
 
-            args_with_fpaths = list_fpaths.output.map(lambda fpath: [fpath, 'raw/pq/'])
+            args_with_fpaths = list_fpaths.output.map(lambda fpath: [fpath, prefix_converted])
             parquetize_data = SparkSubmitOperator \
                 .partial(
                     task_id = f'parquetize_data_{city}',
