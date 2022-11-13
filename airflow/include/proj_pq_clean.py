@@ -14,7 +14,7 @@ from pyspark.sql import functions as F
 import os
 import argparse
 
-from city_vars import dict_cities, dict_common
+from city_vars import dict_common, dict_cities
 
 # inputs
 parser = argparse.ArgumentParser(description = 'Read monthly Parquets, clean and choose columns, combine cities per month.')
@@ -51,11 +51,14 @@ spark = SparkSession.builder \
 
 df_pq = spark.read.parquet(f"{gs_bkt}/{in_path}/{year}/{zmonth}")
 
-# standardize column names
+# filter out duplicates
 # select columns to remove any similarly named columns
+# standardize column names
 o_cols = dict_city['ordered_cols']
 cols = dict_city['renamed_cols']
-df_ordered = df_pq.select(o_cols)
+df_ordered = df_pq \
+    .distinct() \
+    .select(o_cols)
 for i in range(len(o_cols)):
     df_ordered = df_ordered \
         .withColumnRenamed(o_cols[i], cols[i])
@@ -63,14 +66,15 @@ for i in range(len(o_cols)):
 # parse relevant columns
 parser_udf = F.udf(dict_city['parser'], returnType=dict_common['p_ret_type'])
 
-# filter out duplicates
 # parse some columns
-# pick out important columns
+# add common columns
+# pick out final columns
+#   .withColumn(dict_common['str_col'], F.lit('UNKNOWN')) \
 df_select = df_ordered \
-    .distinct() \
-    .withColumn('city', F.lit(city_proper)) \
+    .fillna('UNKNOWN', dict_common['p_col']) \
     .withColumn(dict_common['p_col'], parser_udf(F.col(dict_common['p_col']))) \
-    .withColumn('UNK', F.lit('UNKNOWN')) \
+    .withColumn('city', F.lit(city_proper)) \
+    .withColumn(dict_common['int_col'], F.lit(9999)) \
     .withColumn(dict_city['new_col'], F.col(dict_city['new_val_from'])) \
     .select(dict_common['minimal'])
 

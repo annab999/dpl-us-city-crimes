@@ -5,6 +5,15 @@ from pyspark.sql import types
 cities = ['Chicago', 'San Francisco', 'Los Angeles', 'Austin']
 f_cities = [c.replace(' ', '_').lower() for c in cities]
 
+dict_common = {
+    'p_ret_type': types.StringType(),
+    'p_col': 'street',
+    'int_col': 'UNK_INT',
+    'str_col': 'UNK_STR',
+    'minimal': ['id', 'timestamp', 'city', 'street', 'type', 'description', 'status', 'area', 'victim_age'],
+    'extra': ['location', 'latitude', 'longitude', 'domestic', 'weapon', 'victim_sex', 'victim_descent']
+}
+
 # parse unclean column for analysis
 def parse_chi(block):
     """
@@ -96,7 +105,7 @@ dict_chicago = {
     'renamed_cols': ['id', 'timestamp', 'street', 'type', 'description', 'status', 'area', 'location', 'latitude', 'longitude', 'domestic'],
     'parser': parse_chi,
     'new_col': 'victim_age',
-    'new_val_from': 'UNK'
+    'new_val_from': dict_common['int_col']
 }
 
 dict_san_francisco = {
@@ -216,7 +225,7 @@ dict_austin = {
     'renamed_cols': ['id', 'timestamp', 'street', 'type', 'description', 'status', 'area'],
     'parser': parse_aus,
     'new_col': 'victim_age',
-    'new_val_from': 'UNK'
+    'new_val_from': dict_common['int_col']
 }
 
 dict_cities = {
@@ -224,13 +233,6 @@ dict_cities = {
     cities[1]: dict_san_francisco,
     cities[2]: dict_los_angeles,
     cities[3]: dict_austin
-}
-
-dict_common = {
-    'p_ret_type': types.StringType(),
-    'p_col': 'street',
-    'minimal': ['id', 'timestamp', 'city', 'street', 'type', 'description', 'status', 'area', 'victim_age'],
-    'extra': ['location', 'latitude', 'longitude', 'domestic', 'weapon', 'victim_sex', 'victim_descent']
 }
 
 def selector(dict_city, item, input):
