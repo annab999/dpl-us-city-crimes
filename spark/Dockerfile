@@ -24,7 +24,7 @@ WORKDIR ${INSTALL_DIR}
 
 # create user, update system
 RUN useradd --shell /bin/bash --create-home --gid 0 spark-user \
-    && mkdir -p "${JAR_LOC}" \
+    && mkdir -p ${JAR_LOC} \
     && apt-get update && apt-get -qq install vim \
     && apt-get autoremove -qq --purge && apt-get clean \
     # downloads
@@ -44,6 +44,7 @@ ENV PYTHONPATH="${SPARK_HOME}/python/lib/py4j-0.10.9.5-src.zip:${SPARK_HOME}/pyt
 
 # set up work area
 USER spark-user
+COPY spark-env.sh "${SPARK_HOME}/conf/spark-env.sh"
 COPY requirements.txt .
 RUN mkdir -p "${FILES_HOME}" \
     && source /opt/conda/bin/activate \
