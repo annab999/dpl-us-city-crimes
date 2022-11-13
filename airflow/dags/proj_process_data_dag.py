@@ -1,8 +1,8 @@
 from airflow import DAG
 from airflow.utils.task_group import TaskGroup
 
-from airflow.providers.google.cloud.sensors.gcs import GCSObjectExistenceSensor
-from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateExternalTableOperator, BigQueryInsertJobOperator
+from airflow.providers.google.cloud.sensors.gcs import GCSObjectsWithPrefixExistenceSensor
+from airflow.providers.google.cloud.operators.bigquery import BigQueryDeleteTableOperator, BigQueryCreateExternalTableOperator, BigQueryInsertJobOperator
 from airflow.providers.dbt.cloud.operators.dbt import DbtCloudRunJobOperator
 
 import pendulum as pdl
@@ -13,7 +13,7 @@ proj = os.getenv('GCP_PROJECT_ID')
 a_home = os.getenv('AIRFLOW_HOME')
 gs_bkt = os.getenv('GCP_GCS_BUCKET')  # UPDATE ME IN PROD
 earliest_yr = 2001      # Chicago 2001 data, better to be automated
-dataset = os.getenv('INIT_DATASET')
+dset = os.getenv('INIT_DATASET')
 fmt = {'in': '.csv', 'out': '.parquet'}
 def_args = {
     "owner": "airflow",
@@ -39,35 +39,48 @@ with DAG(
     # cities = ['Chicago', 'San Francisco', 'Los Angeles', 'Austin']
     cities = ['Chicago', 'Los Angeles', 'Austin']
     f_cities = [city.replace(' ', '_').lower() for city in cities]
+    year = '{{ dag_run.logical_date.strftime("%Y") }}'
 
-    with TaskGroup(group_id = 'bq_tg') as tg1:
+    with TaskGroup(group_id = 'gcp_tg') as tg1:
         for city in f_cities:
+            in_prefix = f'{os.getenv("PREFIX_CLEAN")}/{city}/{year}'
 
-            year = '{{ dag_run.logical_date.strftime("%Y") }}'
-            gcs_object_exists = GCSObjectExistenceSensor(
-                task_id = f'gcs_object_exists_{city}',
+            prefix_exists = GCSObjectsWithPrefixExistenceSensor(
+                task_id = f'prefix_exists_{city}',
                 bucket = gs_bkt.replace('gs://', ''),  # UPDATE ME IN PROD
-                object = f'clean/{city}/{year}/01/_SUCCESS',
+                prefix = f'{in_prefix}',
                 timeout = 5,
                 soft_fail = True,
                 retries = 0
             )
 
-            prefix = f'{gs_bkt}/clean/{city}/' + '{{ dag_run.logical_date.strftime("%Y") }}'
+            del_ext_tbl = BigQueryDeleteTableOperator(
+                task_id = f'del_ext_tbl_{city}',
+                deletion_dataset_table = f'{proj}.{dset}.{city}_{year}_ext',
+                ignore_if_missing = True,
+                location = os.getenv('GCP_LOC')
+            )
+
             ext_tbl = BigQueryCreateExternalTableOperator(
                 task_id = f'ext_tbl_{city}',
-                bucket = gs_bkt.replace('gs://', ''),  # UPDATE ME IN PROD
-                source_objects = f'{prefix}/*{fmt["out"]}',
-                destination_project_dataset_table = f'{dataset}.{city}_{{{{ dag_run.logical_date.strftime("%Y") }}}}_ext',
-                source_format = fmt['out'].strip('.').upper(),
-                autodetect = True
+                table_resource = {
+                    "tableReference": {
+                        "projectId": proj,
+                        "datasetId": dset,
+                        "tableId": f'{city}_{year}_ext'
+                    },
+                    "externalDataConfiguration": {
+                        "sourceUris": [f'{gs_bkt}/{in_prefix}/*{fmt["out"]}'],
+                        "sourceFormat": fmt['out'].strip('.').upper()
+                    }
+                }
             )
             
             create_part_query = (
-                f"CREATE OR REPLACE TABLE {proj}.{dataset}.{city}_{{{{ dag_run.logical_date.strftime('%Y') }}}}_part"
-                f"PARTITION BY DATETIME_TRUNC(timestamp, MONTH)"
-                f"AS"
-                f"SELECT * FROM {proj}.{dataset}.{city}_{{{{ dag_run.logical_date.strftime('%Y') }}}}_ext;"
+                f"CREATE OR REPLACE TABLE {proj}.{dset}.{city}_{year}_part "
+                f"PARTITION BY DATETIME_TRUNC(timestamp, MONTH) "
+                f"AS "
+                f"SELECT * FROM {proj}.{dset}.{city}_{year}_ext;"
             )
 
             part_tbl = BigQueryInsertJobOperator(
@@ -80,15 +93,14 @@ with DAG(
                 }
             )
 
-            gcs_object_exists >> ext_tbl >> part_tbl
+            prefix_exists >> del_ext_tbl >> ext_tbl >> part_tbl
 
-    for city in f_cities:
-        process_data = DbtCloudRunJobOperator(
-            task_id = f'process_data_{city}',
-            dbt_cloud_conn_id = 'dbt_cloud_default',
-            job_id = 0,
-            trigger_reason = 'triggered by Airflow task run'
-        )
+    process_data = DbtCloudRunJobOperator(
+        task_id = 'process_data',
+        dbt_cloud_conn_id = 'dbt_cloud_default',
+        job_id = 0,
+        trigger_reason = 'triggered by Airflow task run',
+        trigger_rule = 'none_failed_min_one_success'
+    )
 
-        # task dependencies
-        tg1 >> process_data
+    tg1 >> process_data
