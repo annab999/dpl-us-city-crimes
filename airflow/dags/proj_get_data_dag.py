@@ -43,7 +43,7 @@ with DAG(
     # cities = ['Chicago', 'San Francisco', 'Los Angeles', 'Austin']
     cities = ['Chicago', 'Los Angeles', 'Austin']
     f_cities = [city.replace(' ', '_').lower() for city in cities]
-    prefix_raw = os.getenv("PREFIX_RAW")
+    prefix_csv = os.getenv("PREFIX_CSV")
     prefix_converted = os.getenv("PREFIX_CONVERTED")
     dset = os.getenv('INIT_DATASET')
     loc = os.getenv('GCP_LOC')
@@ -79,7 +79,7 @@ with DAG(
                 task_id = f'list_fpaths_{city}',
                 bucket = '{{ gs_bkt | no_gs }}',  # UPDATE ME IN PROD
                 gcp_conn_id = 'google_cloud_default',
-                prefix = f'{prefix_raw}/{city}/',
+                prefix = f'{prefix_csv}/{city}/',
                 delimiter = "{{ 'in' | fmt }}"
             )
 

@@ -30,7 +30,7 @@ pq_dir = args.pq_dir
 city_proper = os.getenv('CITY_PROPER')
 gs_bkt = os.getenv('GCP_GCS_BUCKET')
 creds_path = os.getenv('SPARK_CREDENTIALS')
-out_path = csv_fpath.replace(os.getenv("PREFIX_RAW"), pq_dir).replace(os.getenv('IN_FMT'), '')
+out_path = csv_fpath.replace(os.getenv("PREFIX_CSV"), pq_dir).replace(os.getenv('IN_FMT'), '')
 
 # for city-specific data
 dict_city = dict_cities[city_proper]

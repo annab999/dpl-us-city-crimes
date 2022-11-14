@@ -33,7 +33,7 @@ creds_path = os.getenv('SPARK_CREDENTIALS')
 
 # for city-specific data
 dict_city = dict_cities[city_proper]
-in_path = csv_fpath.replace(os.getenv("PREFIX_RAW"), pq_dir).replace(os.getenv('IN_FMT'), '')
+in_path = csv_fpath.replace(os.getenv("PREFIX_CSV"), pq_dir).replace(os.getenv('IN_FMT'), '')
 out_path = f"{os.getenv('PREFIX_ORGANIZED')}/{dict_city['formatted']}"
 
 # connect to GCS
