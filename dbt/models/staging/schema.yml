@@ -2,14 +2,52 @@
 version: 2
 
 sources:
-    - name: staging
+    - name: part_per_year
       database: city-crimes
       schema: crime_reports
         
       tables:
-          - name: 
+        - name: 'chicago_2001_part'
+        - name: 'chicago_2002_part'
+        - name: 'chicago_2003_part'
+        - name: 'chicago_2004_part'
+        - name: 'chicago_2005_part'
+        - name: 'chicago_2006_part'
+        - name: 'chicago_2007_part'
+        - name: 'chicago_2008_part'
+        - name: 'chicago_2009_part'
+        - name: 'chicago_2010_part'
+        - name: 'chicago_2011_part'
+        - name: 'chicago_2012_part'
+        - name: 'chicago_2013_part'
+        - name: 'chicago_2014_part'
+        - name: 'chicago_2015_part'
+        - name: 'chicago_2016_part'
+        - name: 'chicago_2017_part'
+        - name: 'chicago_2018_part'
+        - name: 'chicago_2019_part'
+        - name: 'chicago_2020_part'
+        - name: 'chicago_2021_part'
+        - name: 'chicago_2022_part'
+        - name: 'los_angeles_2010_part'
+        - name: 'los_angeles_2011_part'
+        - name: 'los_angeles_2012_part'
+        - name: 'los_angeles_2013_part'
+        - name: 'los_angeles_2014_part'
+        - name: 'los_angeles_2015_part'
+        - name: 'los_angeles_2016_part'
+        - name: 'los_angeles_2017_part'
+        - name: 'los_angeles_2018_part'
+        - name: 'los_angeles_2019_part'
+        - name: 'los_angeles_2020_part'
+        - name: 'los_angeles_2021_part'
+        - name: 'los_angeles_2022_part'
+        - name: 'austin_2015_part'
+        - name: 'austin_2016_part'
+        - name: 'austin_2017_part'
+        - name: 'austin_2018_part'
 
-models:
+models:                             #### UPDATE ME
     - name: my_first_dbt_model
       description: "A starter dbt model"
       columns:
