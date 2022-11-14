@@ -1,6 +1,14 @@
 
 version: 2
 
+sources:
+    - name: staging
+      database: city-crimes
+      schema: crime_reports
+        
+      tables:
+          - name: 
+
 models:
     - name: my_first_dbt_model
       description: "A starter dbt model"

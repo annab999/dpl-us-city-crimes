@@ -98,7 +98,7 @@ with DAG(
     process_data = DbtCloudRunJobOperator(
         task_id = 'process_data',
         dbt_cloud_conn_id = 'dbt_cloud_default',
-        job_id = 0,
+        job_id = int(os.getenv('PROCESS_DATA_JOB')),
         trigger_reason = 'triggered by Airflow task run',
         trigger_rule = 'none_failed_min_one_success'
     )

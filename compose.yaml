@@ -67,6 +67,8 @@ x-airflow-common:
     # BigQuery info
     GCP_LOC: ${GCP_LOCATION}
     INIT_DATASET: ${INITIAL_DATASET}
+    # dbt details
+    PROCESS_DATA_JOB: ${DBT_JOB_ID}
   volumes:
     - ${AIRFLOW_HOST}/dags:${INSTALL_LOC}/airflow/dags
     - ${AIRFLOW_HOST}/logs:${INSTALL_LOC}/airflow/logs
