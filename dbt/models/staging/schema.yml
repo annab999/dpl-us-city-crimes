@@ -48,8 +48,16 @@ sources:
         - name: 'austin_2018_part'
 
 models:                             #### UPDATE ME
-    - name: my_first_dbt_model
-      description: "A starter dbt model"
+    - name: stg_crimes_chicago
+      description: "staging view of Chicago data"
+      columns:
+          - name: id
+            description: "The primary key for this table"
+            tests:
+                - not_null
+
+    - name: stg_crimes_austin
+      description: "staging view of Austin data"
       columns:
           - name: id
             description: "The primary key for this table"
@@ -57,8 +65,8 @@ models:                             #### UPDATE ME
                 - unique
                 - not_null
 
-    - name: my_second_dbt_model
-      description: "A starter dbt model"
+    - name: stg_crimes_los_angeles
+      description: "staging view of LA data"
       columns:
           - name: id
             description: "The primary key for this table"

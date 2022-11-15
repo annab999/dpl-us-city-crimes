@@ -1,0 +1,19 @@
+
+version: 2
+
+models:                             #### UPDATE ME
+    - name: dm_allcities_permonth
+      description: "monthly stats across all cities"
+      columns:
+          - name: mon
+            description: "Grouping for this table - datetime truncated to month"
+            tests:
+                - not_null
+
+    - name: dm_chicago_allyears
+      description: "staging model for Austin data"
+      columns:
+          - name: id
+            description: "The primary key for this table"
+            tests:
+                - not_null

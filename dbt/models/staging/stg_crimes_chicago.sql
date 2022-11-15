@@ -1,5 +1,1 @@
-/*
-    view of Chicago data
-*/
-
--- {{ city_ctes('chicago') }}
+{{ city_ctes('chicago') }}
