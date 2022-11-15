@@ -1,5 +1,5 @@
 /*
-    macros for use on different cities
+    common macros for use on cities
 */
 
 {% macro city_ctes(cityname) %}
@@ -30,3 +30,23 @@
     from {{cityname}}_years_unioned
 
 {% endmacro %}
+
+
+{% macro age(col) %}
+
+    case {{ col }}
+        when 9999 then NULL
+        else {{ col }}
+    end
+
+{% endmacro %}
+
+
+-- {% macro type(col) %}
+
+--     case {{ col }}
+--         when 9999 then NULL
+--         else {{ col }}
+--     end
+
+-- {% endmacro %}

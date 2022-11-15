@@ -4,7 +4,7 @@
         id,
         time_stamp,
         city,
-        victim_age
+        {{ age('victim_age') }} as victim_age
     from {{ ref('stg_crimes_' ~ cityname) }}
 ),
 {%- endfor %}
@@ -18,7 +18,9 @@ cities_unioned as (
         city,
         datetime_trunc(time_stamp, month) as mon,
         count(id) as records,
-        min(victim_age) as youngest_victim
+        min(victim_age) as youngest_victim,
+        avg(victim_age) as avg_victim_age,
+        max(victim_age) as oldest_victim
     from cities_unioned
     group by 1, 2
 
