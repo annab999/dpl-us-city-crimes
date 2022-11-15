@@ -24,7 +24,7 @@ def_args = {
 with DAG(
     dag_id = "proj_get_data_dag",
     schedule = '@once',
-    start_date = pdl.datetime(2022, 10, 1, tz="Asia/Manila"),
+    start_date = pdl.datetime(2022, 11, 1),
     default_args = def_args,
     template_searchpath = f'{a_home}/include',
     max_active_runs = 2,
@@ -48,6 +48,13 @@ with DAG(
     dset = os.getenv('INIT_DATASET')
     loc = os.getenv('GCP_LOC')
     
+    create_dset = BigQueryCreateEmptyDatasetOperator(
+        task_id = f'create_dset',
+        dataset_id = dset,
+        location = loc,
+        exists_ok = True
+    )
+
     with TaskGroup(group_id = 'files_tg') as tg1:
         for city in f_cities:
             parse_link = PythonOperator(
@@ -120,11 +127,4 @@ with DAG(
 
             list_fpaths >> parquetize_data >> clean_data
     
-    create_dset = BigQueryCreateEmptyDatasetOperator(
-        task_id = f'create_dset',
-        dataset_id = dset,
-        location = loc,
-        exists_ok = True
-    )
-
     tg1 >> tg2 >> create_dset
