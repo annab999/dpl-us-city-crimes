@@ -84,6 +84,27 @@ dict_chicago = {
         types.StructField('Arrest', types.BooleanType(), True),
         types.StructField('Domestic', types.BooleanType(), True),
         types.StructField('Beat', types.StringType(), True),
+        types.StructField('Ward', types.IntegerType(), True),
+        types.StructField('FBI Code', types.StringType(), True),
+        types.StructField('X Coordinate', types.FloatType(), True),
+        types.StructField('Y Coordinate', types.FloatType(), True),
+        types.StructField('Year', types.IntegerType(), True),
+        types.StructField('Latitude', types.FloatType(), True),
+        types.StructField('Longitude', types.FloatType(), True),
+        types.StructField('Location', types.StringType(), True)
+    ]),
+    'schema_template3': types.StructType([
+        types.StructField('ID', types.IntegerType(), True),
+        types.StructField('Case Number', types.StringType(), True),
+        types.StructField('Date', types.StringType(), True),
+        types.StructField('Block', types.StringType(), True),
+        types.StructField('IUCR', types.StringType(), True),
+        types.StructField('Primary Type', types.StringType(), True),
+        types.StructField('Description', types.StringType(), True),
+        types.StructField('Location Description', types.StringType(), True),
+        types.StructField('Arrest', types.BooleanType(), True),
+        types.StructField('Domestic', types.BooleanType(), True),
+        types.StructField('Beat', types.StringType(), True),
         types.StructField('District', types.StringType(), True),
         types.StructField('Ward', types.IntegerType(), True),
         types.StructField('Community Area', types.IntegerType(), True),
@@ -235,15 +256,17 @@ dict_cities = {
     cities[3]: dict_austin
 }
 
-def selector(dict_city, item, input):
+def selector(dict_city, item, par):
     if item == 'schema':
         if dict_city['formatted'] == f_cities[0]:           # Chicago
-            if any(str(year) in input for year in range(2003, 2011)):
+            if any(str(year) in par for year in range(2003, 2011)):
                 return dict_city['schema_template1']
-            else:
+            elif '2011' in par:
                 return dict_city['schema_template2']
+            else:
+                return dict_city['schema_template3']
         elif dict_city['formatted'] == f_cities[1]:         # SF
-            if 'Present' not in input:
+            if 'Present' not in par:
                 return dict_city['schema_template1']
             else:
                 return dict_city['schema_template2']
