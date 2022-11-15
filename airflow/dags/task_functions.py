@@ -26,7 +26,7 @@ def parse_bash(item):
     """
     parse download-upload commands from list of links for city
     """
-    gs_path = '$gs' + '/raw/' + '$name'
+    gs_path = '$gs' + '/raw/csv/' + '$name'
     up_command = 'gcloud storage cp - ' + gs_path
     curl = f"curl {item['url']} | {up_command}/{item['fname']}$ext"
     printer(f'-----{curl}----------')

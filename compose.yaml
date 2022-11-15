@@ -50,13 +50,25 @@ x-airflow-common:
     AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
     AIRFLOW__CORE__FERNET_KEY: ''
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
-    AIRFLOW__CORE__LOAD_EXAMPLES: 'true'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth'
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
+    # Connections and credentials
     GOOGLE_APPLICATION_CREDENTIALS: /.google/credentials/${AIRFLOW_CREDS}
-    AIRFLOW_CONN_GOOGLE_CLOUD_TEST: 'google-cloud-platform://?extra__google_cloud_platform__key_path=%2F.google%2Fcredentials%2F${AIRFLOW_CREDS}&extra__google_cloud_platform__project=${GCP_PROJ}'
-    AIRFLOW_CONN_PROJECT_SPARK: '{"conn_type": "spark", "host": "spark://${SPARK_HOSTNAME}", "port": 7077}'
-    SPARK_CREDENTIALS: /.google/credentials/${SPARK_CREDS} 
+    AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT: 'google-cloud-platform://?extra__google_cloud_platform__key_path=%2F.google%2Fcredentials%2F${AIRFLOW_CREDS}&extra__google_cloud_platform__project=${GCP_PROJ}'
+    AIRFLOW_CONN_SPARK_DEFAULT: '{"conn_type": "spark", "host": "spark://${SPARK_HOSTNAME}", "port": 7077}'
+    SPARK_CREDENTIALS: /.google/credentials/${SPARK_CREDS}
+    AIRFLOW_CONN_DBT_CLOUD_DEFAULT: 'dbt-cloud://${DBT_ACCOUNT_ID}:${DBT_TOKEN}@'
+    # GCS path prefixes
+    PREFIX_CSV: ${PATH_RAW}
+    PREFIX_CONVERTED: ${PATH_CONVERTED}
+    PREFIX_ORGANIZED: ${PATH_ORGANIZED}
+    PREFIX_CLEAN: ${PATH_CLEAN}
+    # BigQuery info
+    GCP_LOC: ${GCP_LOCATION}
+    INIT_DATASET: ${INITIAL_DATASET}
+    # dbt details
+    PROCESS_DATA_JOB: ${DBT_JOB_ID}
   volumes:
     - ${AIRFLOW_HOST}/dags:${INSTALL_LOC}/airflow/dags
     - ${AIRFLOW_HOST}/logs:${INSTALL_LOC}/airflow/logs
@@ -138,6 +150,11 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
+    ports:
+      - "4041:4040"
+      - "4042:4041"
+      - "4043:4042"
+      - "4044:4043"
     environment:
       <<: [ *airflow-common-env, *project-common-env ]
       # Required to handle warm shutdown of the celery workers properly
@@ -293,6 +310,19 @@ services:
     volumes:
       - ${SPARK_HOST}:${SPARK_FILES_LOC}
       - ${CREDS_HOST}/spark:/.google/credentials:ro
+
+  spark-worker:
+    build:
+      context: ${SPARK_WORKER_HOST}
+      args:
+        <<: *project-common-arg
+        MASTER_HOSTNAME: ${SPARK_HOSTNAME}
+    environment:
+      <<: *project-common-env
+    volumes:
+      - ${CREDS_HOST}/spark:/.google/credentials:ro
+    depends_on:
+      - spark
 
 volumes:
   ################################## AIRFLOW ##################################

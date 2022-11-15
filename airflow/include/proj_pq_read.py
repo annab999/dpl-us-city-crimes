@@ -1,12 +1,10 @@
-####### project_file_read.py
 ## CLI usage:
 ## spark-submit --master <URL> \
 #       --name <app-name> \
 #       --jars </abs/path/to/connector.jar> \
 #       --py-files city_vars.py \
-#       project_file_read.py \
-#           <city_proper> \
-#           <fpath>
+#       <this_file>.py \
+#           <args>
 
 from pyspark.conf import SparkConf
 from pyspark.context import SparkContext
@@ -21,30 +19,22 @@ import pendulum as pdl
 from city_vars import dict_cities
 
 # inputs
-parser = argparse.ArgumentParser(
-    description = 'Read CSV file into Spark, divide into years, and write to Parquets.',
-    epilog = "Provide optional args only if not available as env vars.")
-parser.add_argument('city_proper',
-    choices = ['Chicago', 'San Francisco', 'Los Angeles', 'Austin'],
-    help = 'specify 1 of the 4 city for its corresponding template')
-parser.add_argument('fpath', help = 'CSV file name and path prefix (if any), e.g. <dir1>/<subdir>/<fname>.<ext>')
+parser = argparse.ArgumentParser(description = 'Read Parquet file into Spark, clean rows, add standard timestamps, divide into months.')
+parser.add_argument('csv_fpath', help = 'CSV file name and path prefix (if any), e.g. <dir1>/<subdir>/<fname>.<ext>')
+parser.add_argument('pq_dir', help = 'Parquet path prefix replacing old prefix in csv_fpath')
 args = parser.parse_args()
 
 # parsed inputs
-city_proper = args.city_proper
-fpath = args.fpath
+csv_fpath = args.csv_fpath
+pq_dir = args.pq_dir
+city_proper = os.getenv('CITY_PROPER')
 gs_bkt = os.getenv('GCP_GCS_BUCKET')
 creds_path = os.getenv('SPARK_CREDENTIALS')
 
 # for city-specific data
 dict_city = dict_cities[city_proper]
-
-def parse_dt(dt_str):
-    """
-    parse datetime object from given date string of specific format
-    """
-    return pdl.from_format(dt_str, dict_city['date_format'])
-parse_dt_udf = F.udf(parse_dt, returnType=types.TimestampType())
+in_path = csv_fpath.replace(os.getenv("PREFIX_CSV"), pq_dir).replace(os.getenv('IN_FMT'), '')
+out_path = f"{os.getenv('PREFIX_ORGANIZED')}/{dict_city['formatted']}"
 
 # connect to GCS
 sc = SparkContext(conf=SparkConf())
@@ -58,18 +48,24 @@ spark = SparkSession.builder \
     .config(conf=sc.getConf()) \
     .getOrCreate()
 
-df_csv = spark.read \
-    .option("header", "true") \
-    .schema(dict_city['schema_template']) \
-    .csv(f"{gs_bkt}/{fpath}")
+df_in = spark.read.parquet(f'{gs_bkt}/{in_path}/*')
 
-# parse datetime out of provided date column
-df_time = df_csv.withColumn('Timestamp', parse_dt_udf(F.col(dict_city['date_string_col'])))
+# filter out rows with null values in important columns
+# parse datetime from provided date column of specific format
+# drop old date col
+p_func = lambda s: pdl.from_format(s, dict_city['date_format'])
+parse_dt_udf = F.udf(p_func, returnType=types.TimestampType())
+
+df_time = df_in \
+    .filter(F.col(dict_city['date_string_col']).isNotNull()) \
+    .withColumn('Timestamp', parse_dt_udf(F.col(dict_city['date_string_col']))) \
+    .drop(dict_city['date_string_col'])
 
 # parse year list
 if dict_city['with_year_col']:
     years_rows = df_time \
         .select('Year')
+    df_time.drop('Year')
 else:
     years_rows = df_time \
         .select(F.year('Timestamp').alias('Year'))
@@ -80,7 +76,9 @@ years_rows = years_rows \
 years = [row.Year for row in years_rows]
 years.sort()
 
-# write to parquet
+# clean col names
+# repartition if needed
+# write to per-month parquet
 o_cols = df_time.columns
 cols = [col.lower().replace(' ', '_') for col in o_cols]
 for year in years:
@@ -89,8 +87,7 @@ for year in years:
         df_month = df.filter(F.month('Timestamp') == month)
         for i in range(len(o_cols)):
             df_month = df_month.withColumnRenamed(o_cols[i], cols[i])
-        if dict_city['partitions'] > 1:
-            df_month = df_month.repartition(dict_city['partitions'])
-        df_month \
-            .drop('Timestamp') \
-            .write.parquet(f"{gs_bkt}/pq/from_raw/{dict_city['formatted']}/{year}/{month}", mode='overwrite')
+        if dict_city['pq_parts'] > 1:
+            df_month = df_month.repartition(dict_city['pq_parts'])
+        df_month.write \
+            .parquet(f"{gs_bkt}/{out_path}/{year}/{month:02}", mode='overwrite')
