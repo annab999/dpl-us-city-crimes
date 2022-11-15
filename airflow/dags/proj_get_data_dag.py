@@ -24,7 +24,7 @@ def_args = {
 with DAG(
     dag_id = "proj_get_data_dag",
     schedule = '@once',
-    start_date = pdl.datetime(2022, 10, 1, tz="Asia/Manila"),
+    start_date = pdl.datetime(2022, 11, 1),
     default_args = def_args,
     template_searchpath = f'{a_home}/include',
     max_active_runs = 2,
