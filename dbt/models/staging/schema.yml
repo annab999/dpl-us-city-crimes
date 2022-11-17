@@ -52,24 +52,21 @@ models:                             #### UPDATE ME
       description: "staging view of Chicago data"
       columns:
           - name: id
-            description: "The primary key for this table"
-            tests:
-                - not_null
+            description: "The primary key for this table. A couple of records with missing IDs, some with the same ID."
 
     - name: stg_crimes_austin
       description: "staging view of Austin data"
       columns:
           - name: id
-            description: "The primary key for this table"
+            description: "The primary key for this table. Nullable due to over half of total records missing IDs."
             tests:
                 - unique
-                - not_null
 
     - name: stg_crimes_los_angeles
       description: "staging view of LA data"
       columns:
           - name: id
-            description: "The primary key for this table"
+            description: "The primary key for this table."
             tests:
                 - unique
                 - not_null
