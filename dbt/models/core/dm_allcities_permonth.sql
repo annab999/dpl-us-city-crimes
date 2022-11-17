@@ -16,7 +16,7 @@ cities_unioned as (
 )
     select  
         city,
-        datetime_trunc(time_stamp, month) as mon,
+        datetime_trunc(time_stamp, month) as trunc_to_mon,
         count(id) as records,
         min(victim_age) as youngest_victim,
         avg(victim_age) as avg_victim_age,

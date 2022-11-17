@@ -37,11 +37,11 @@ def parse_los(location):
     split = location.split()
     for i in range(len(split)):
         if split[i] in ['N', 'E', 'W', 'S']:
-            return split[i+1:]
+            return " ".join(split[i+1:])
     for i in range(len(split)):
         if split[i].isdigit():
-            return split[i+1:]
-    return split[-1:]
+            return " ".join(split[i+1:])
+    return " ".join(split[-1:])
 
 def parse_aus(go_location):
     """
