@@ -8,7 +8,7 @@
 {{ "with " if loop.first }}{{ cityname }}_{{yr}} as (
     select *
     from {{ source('part_per_year', cityname ~ '_' ~ yr ~ '_part')  }}
-    where id is not null
+--    where id is not null
 ),
 {% endfor %}
 {{cityname}}_years_unioned as (
