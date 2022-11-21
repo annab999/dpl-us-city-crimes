@@ -574,6 +574,36 @@ The scheduler does not appear to be running. Last heartbeat was received 1 minut
 
 - Somewhat **Resolution**: Set `depends_on_past` to True to alleviate the stress on the Scheduler. Also set quicker-to-process tasks if possible to totally avoid this issue
 
+### [Spark] False successful run of `clean_data_chicago` mapped task for 2011 data
+Task run output marking it as success (from raw/pq/ to pq/):
+```
+[2022-11-11, 11:49:37 UTC] {spark_submit.py:485} INFO - 22/11/11 11:49:37 INFO BlockManagerInfo: Added broadcast_1_piece0 in memory on 172.18.0.2:38595 (size: 35.1 KiB, free: 434.4 MiB)
+[2022-11-11, 11:49:38 UTC] {spark_submit.py:485} INFO - 22/11/11 11:49:38 INFO TaskSetManager: Finished task 2.0 in stage 1.0 (TID 3) in 4213 ms on 172.18.0.5 (executor 0) (1/3)
+...
+[2022-11-11, 11:49:41 UTC] {spark_submit.py:485} INFO - 22/11/11 11:49:41 INFO TaskSchedulerImpl: Removed TaskSet 1.0, whose tasks have all completed, from pool
+[2022-11-11, 11:49:41 UTC] {spark_submit.py:485} INFO - 22/11/11 11:49:41 INFO DAGScheduler: ShuffleMapStage 1 (collect at /opt/***/include/proj_pq_read.py:70) finished in 7.100 s
+[2022-11-11, 11:49:41 UTC] {spark_submit.py:485} INFO - 22/11/11 11:49:41 INFO DAGScheduler: looking for newly runnable stages
+[2022-11-11, 11:49:41 UTC] {spark_submit.py:485} INFO - 22/11/11 11:49:41 INFO DAGScheduler: running: Set()
+[2022-11-11, 11:49:41 UTC] {spark_submit.py:485} INFO - 22/11/11 11:49:41 INFO DAGScheduler: waiting: Set()
+[2022-11-11, 11:49:41 UTC] {spark_submit.py:485} INFO - 22/11/11 11:49:41 INFO DAGScheduler: failed: Set()
+[2022-11-11, 11:49:41 UTC] {spark_submit.py:485} INFO - 22/11/11 11:49:41 INFO SparkContext: Invoking stop() from shutdown hook
+[2022-11-11, 11:49:41 UTC] {spark_submit.py:485} INFO - 22/11/11 11:49:41 INFO SparkUI: Stopped Spark web UI at http://47aef0e50d76:4040
+[2022-11-11, 11:49:41 UTC] {spark_submit.py:485} INFO - 22/11/11 11:49:41 INFO StandaloneSchedulerBackend: Shutting down all executors
+...
+[2022-11-11, 11:49:41 UTC] {spark_submit.py:485} INFO - 22/11/11 11:49:41 INFO SparkContext: Successfully stopped SparkContext
+[2022-11-11, 11:49:41 UTC] {spark_submit.py:485} INFO - 22/11/11 11:49:41 INFO ShutdownHookManager: Shutdown hook called
+...
+[2022-11-11, 11:49:41 UTC] {taskinstance.py:1401} INFO - Marking task as SUCCESS. dag_id=proj_get_data_dag, task_id=data_tg.clean_data_chicago, map_index=6, execution_date=20220930T160000, start_date=20221111T114908, end_date=20221111T114941
+```
+- **Observations**: Only noticed once downstream task in another DAG failed for this year's data, because the file path doesn't exist in the first place O_O
+  Even upon re-run, task completes as false positive. There isn't any error from the output, just much less actions/logs by Spark. Tasks for other year's files run fine.
+
+  Tried re-running all upstream tasks (for this problematic year), then re-running this task. Same issue arises.
+
+  Turns out from manual inspection that this dataset has 1 more column than all previous years, and about 4 less columns than all succeeding years. So, another schema template is needed just for this year and problem goes way back to CSV file read task.
+
+- **Resolution**: Fix schema template for this dataset
+
 ### [Service] Template
 
 - **Observations**: Stuff
@@ -597,6 +627,12 @@ The scheduler does not appear to be running. Last heartbeat was received 1 minut
 - https://stackoverflow.com/questions/7194939/git-change-one-line-in-file-for-the-complete-history
 - slim-airflow branch - next step: separate ROOT and AIRFLOW_USER installs (apt-get, pip)
 - LA `time_occ`, `cross_street` columns
+- earliest_year = 2002    # Chicago 2001 data, use list GCS object exists prefix operator
+  - needs passing values between DAGS
+- DAG dependencies
+- remove city from tables - move cleaning to dbt
+- regroup tasks to per city
+- dbt: add city col, set common cols
 
 ### Before running prod
 - update airflow .env bucket
