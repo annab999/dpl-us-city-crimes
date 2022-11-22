@@ -10,6 +10,10 @@ Pipeline details are back in the project's [root](..).
 - other statistical data (if any) about the perpetrator and/or the victim
 - (optional) comparison with the dataset/s by another city government over the same time period
 
+## PipelineWorkflow
+Rough initial plan for the data pipeline was:
+![projplan.png](./docu/projplan.png?raw=true "Initial workflow diagram")
+
 ## Implementation
 Preliminary steps to take:
 - [x] Set up Terraform scripts

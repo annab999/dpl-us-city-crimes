@@ -14,11 +14,9 @@ Screenshots of currently generated dashboards are below. The first [visualizes C
 ![cross-city-crime-data.png](./docu/cross-city-crime-data.png?raw=true "US Cities Crime Data dashboard")
 
 ## Pipeline Workflow:
-The rough initial plan for the data pipeline was:
-![projplan.png](./docu/projplan.png?raw=true "Project pipeline diagram")
-
 Currently implemented data pipeline is:
-*WIP*
+
+![us_city_crimes_data_pipeline.png](./docu/us_city_crimes_data_pipeline.png?raw=true "Project workflow diagram")
 
 with the following Airflow sub-DAGs / tasks in order of execution:
 ![airflow-dag1.png](./docu/airflow-dag1.png?raw=true "Airflow sub-DAG 1")
