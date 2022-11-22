@@ -78,8 +78,13 @@ Follow the steps below to recreate the pipeline from scratch:
    - Copy the following there:
      - this folder
      - your service account JSON keys
-5. Edit [.env](./.env) with your GCP details and `CREDS` (JSON) locations. Run `id -u` and use the output as value to `AIRFLOW_UID`.
-6. Connect and log on to your host machine. As this implementation uses gcloud SDK/CLI in some step, ensure that your machine is authenticated with GCP.
+5. Make a copy of [.env-template](./.env-template) and modify it to use your details, specifically for the following:
+   - `CREDS` file (JSON) locations
+   - Run `id -u` and use the output as value to `AIRFLOW_UID`
+   - GCP details and location
+   - dbt Cloud account details
+   Rename your file to `.env` and save in the same location as the template.
+6. Connect and log on to your host machine. As this implementation uses gcloud SDK/CLI in some step, ensure that your machine is authenticated via a service account (with similar permissions as Airflow in step 2 above) with GCP.
    - If using a Compute Engine VM, ensure machine has a service account attached, and the following API scopes enabled (at least): *BigQuery, Cloud Storage*
 7. Modify and run the following:
    ```

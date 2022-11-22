@@ -1,0 +1,33 @@
+# jupyter caches
+**/.ipynb_checkpoints/
+**/.Trash-[0-9]*/
+
+# jupyter caches, if existing
+**/.jupyter/
+**/.ipython/
+**/.local/
+
+# airflow cache and logs
+**/__pycache__/
+airflow/logs/
+airflow/plugins/
+
+# test/generated data in spark
+spark/*.csv
+spark/*.py
+
+# venv
+**/.venv/
+
+# Docker env file
+**/.env
+
+# terraform config with sensitive data
+.terraform/
+*.backup
+*.tfstate
+
+# dbt
+dbt/logs/
+dbt/dbt_packages/
+dbt/target/
