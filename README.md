@@ -15,10 +15,11 @@ Screenshots of currently generated dashboards are below. The first [visualizes C
 
 ## Pipeline Workflow:
 The rough initial plan for the data pipeline was:
-![projplan.png](./docu/projplan.png?raw=true "Project pipeline diagram")
+![projplan.png](./docu/projplan.png?raw=true "Initial workflow diagram")
 
 Currently implemented data pipeline is:
-*WIP*
+
+![us_city_crimes_data_pipeline.png](./docu/us_city_crimes_data_pipeline.png?raw=true "Project workflow diagram")
 
 with the following Airflow sub-DAGs / tasks in order of execution:
 ![airflow-dag1.png](./docu/airflow-dag1.png?raw=true "Airflow sub-DAG 1")
