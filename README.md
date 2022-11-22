@@ -14,9 +14,6 @@ Screenshots of currently generated dashboards are below. The first [visualizes C
 ![cross-city-crime-data.png](./docu/cross-city-crime-data.png?raw=true "US Cities Crime Data dashboard")
 
 ## Pipeline Workflow:
-The rough initial plan for the data pipeline was:
-![projplan.png](./docu/projplan.png?raw=true "Initial workflow diagram")
-
 Currently implemented data pipeline is:
 
 ![us_city_crimes_data_pipeline.png](./docu/us_city_crimes_data_pipeline.png?raw=true "Project workflow diagram")
